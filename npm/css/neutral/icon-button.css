@@ -1,0 +1,108 @@
+/* @arrtu/pieces — neutral/icon-button
+   ─────────────────────────────────────────────────────────────────
+   Botão de ícone. Nunca use com label — para isso use button.
+
+   Estrutura mínima:
+     <button class="piece-surface piece-icon-button piece-medium">
+       <span class="piece-ripple"></span>
+       <span class="material-symbols-rounded piece-icon">star</span>
+     </button>
+
+   Toggle — adicione .piece-toggle:
+     <button class="piece-surface piece-icon-button piece-medium piece-toggle ...">
+       <span class="piece-ripple"></span>
+       <span class="material-symbols-rounded piece-icon">bookmark</span>
+     </button>
+
+   Com piece-true / piece-false (visibilidade por estado — gerenciado pelo core):
+     <button class="piece-surface piece-icon-button piece-medium piece-toggle ...">
+       <span class="piece-ripple"></span>
+       <span class="material-symbols-rounded piece-icon piece-false">bookmark</span>
+       <span class="material-symbols-rounded piece-icon piece-true">bookmark</span>
+     </button>
+
+   Group — use dentro de .piece-group (ver group.css):
+     <div class="piece-group">
+       <button class="piece-surface piece-icon-button piece-medium piece-toggle ...">...</button>
+       <button class="piece-surface piece-icon-button piece-medium piece-toggle ...">...</button>
+     </div>
+   ─────────────────────────────────────────────────────────────────
+*/
+
+.piece-icon-button {
+    transition: .3s;
+    width: clamp(var(--button-width), var(--button-width), var(--button-width));
+    height: var(--height);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    display: grid;
+    place-content: center;
+    place-items: center;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    cursor: var(--cursor-pointer);
+
+    .piece-icon {
+        transition: .3s;
+        font-size: var(--icon-size);
+    }
+
+    :where(*, * *) {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    &:active,
+    &.piece-actived {
+        border-radius: var(--active-radius);
+    }
+
+    /* ── Tamanhos ─────────────────────────────────────────────── */
+
+    &.piece-extra-small {
+        --button-width:  24px;
+        --height:        24px;
+        --icon-size:     14px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        &.piece-narrow { --button-width: 20px; }
+        &.piece-wide   { --button-width: 32px; }
+    }
+    &.piece-small {
+        --button-width:  28px;
+        --height:        28px;
+        --icon-size:     16px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        &.piece-narrow { --button-width: 24px; }
+        &.piece-wide   { --button-width: 36px; }
+    }
+    &.piece-medium {
+        --button-width:  32px;
+        --height:        32px;
+        --icon-size:     18px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        &.piece-narrow { --button-width: 28px; }
+        &.piece-wide   { --button-width: 40px; }
+    }
+    &.piece-large {
+        --button-width:  40px;
+        --height:        40px;
+        --icon-size:     20px;
+        --border-radius: 5px;
+        --active-radius: 5px;
+        &.piece-narrow { --button-width: 32px; }
+        &.piece-wide   { --button-width: 52px; }
+    }
+    &.piece-extra-large {
+        --button-width:  48px;
+        --height:        48px;
+        --icon-size:     22px;
+        --border-radius: 6px;
+        --active-radius: 6px;
+        &.piece-narrow { --button-width: 40px; }
+        &.piece-wide   { --button-width: 64px; }
+    }
+}

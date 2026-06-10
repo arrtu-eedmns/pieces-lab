@@ -1,0 +1,25 @@
+/* @arrtu/pieces — neutral/group
+   ─────────────────────────────────────────────────────────────────
+   Container para agrupamento de buttons e icon-buttons.
+   Aceita mistura de .piece-button e .piece-icon-button no mesmo grupo.
+   O comportamento de seleção é gerenciado pelo toggle.js do core.
+
+   Single-select (padrão):
+     <div class="piece-group">
+       <button class="piece-surface piece-button piece-medium piece-toggle ...">...</button>
+       <button class="piece-surface piece-icon-button piece-medium piece-toggle ...">...</button>
+     </div>
+
+   Multi-select:
+     <div class="piece-group piece-multi">
+       <button class="piece-surface piece-button piece-medium piece-toggle ...">...</button>
+       <button class="piece-surface piece-button piece-medium piece-toggle ...">...</button>
+     </div>
+   ─────────────────────────────────────────────────────────────────
+*/
+
+.piece-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}

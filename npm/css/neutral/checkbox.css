@@ -1,0 +1,77 @@
+/* @arrtu/pieces — neutral/checkbox
+   ─────────────────────────────────────────────────────────────────
+   Componente de seleção múltipla — use apenas em formulários.
+   Para seleção visual sem formulário, use button-group com .piece-group.
+
+   Mesmas dimensões do icon-button. Estado via input.piece-controller:checked
+   (gerenciado pelo core — piece-true/piece-false funcionam automaticamente).
+
+   Estrutura:
+     <label class="piece-surface piece-checkbox piece-medium ...">
+       <input class="piece-controller" type="checkbox">
+       <span class="piece-icon piece-false material-symbols-rounded">check_box_outline_blank</span>
+       <span class="piece-icon piece-true  material-symbols-rounded">check_box</span>
+     </label>
+   ─────────────────────────────────────────────────────────────────
+*/
+
+.piece-checkbox {
+    width: clamp(var(--button-width), var(--button-width), var(--button-width));
+    height: var(--height);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    display: grid;
+    place-content: center;
+    place-items: center;
+    cursor: pointer;
+    position: relative;
+
+    .piece-controller {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .piece-icon {
+        font-size: var(--icon-size);
+    }
+
+    :where(*, * *) {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    /* ── Tamanhos ─────────────────────────────────────────────── */
+
+    &.piece-extra-small {
+        --button-width:  24px;
+        --height:        24px;
+        --icon-size:     14px;
+        --border-radius: 4px;
+    }
+    &.piece-small {
+        --button-width:  28px;
+        --height:        28px;
+        --icon-size:     16px;
+        --border-radius: 4px;
+    }
+    &.piece-medium {
+        --button-width:  32px;
+        --height:        32px;
+        --icon-size:     18px;
+        --border-radius: 4px;
+    }
+    &.piece-large {
+        --button-width:  40px;
+        --height:        40px;
+        --icon-size:     20px;
+        --border-radius: 5px;
+    }
+    &.piece-extra-large {
+        --button-width:  48px;
+        --height:        48px;
+        --icon-size:     22px;
+        --border-radius: 6px;
+    }
+}

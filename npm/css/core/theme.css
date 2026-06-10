@@ -1,0 +1,98 @@
+/* @arrtu/pieces — core/theme
+   Variáveis globais de tema. Aplique .piece-dark ou .piece-light no elemento raiz.
+   --piece-base-h : matiz HSL base — usado pelas harmonias (nunca sobrescrito pelos canais)
+   --piece-h      : canal ativo — gerenciado pelas classes piece-primary/secondary/tertiary
+   --piece-s      : saturação HSL (%)
+   --piece-a      : alpha global (%)
+   --piece-theme / --piece-theme-operator : usados pelo piece-css-generator
+*/
+
+/* ── Variáveis base ─────────────────────────────────────────────── */
+
+:root {
+    --piece-base-h: 248;
+    --piece-h: var(--piece-base-h);
+    --piece-s: 16%;
+}
+
+/* ── Temas ───────────────────────────────────────────────────────── */
+
+.piece-dark {
+    --piece-theme: 0%;
+    --piece-theme-inverse: 100%;
+    --piece-theme-operator: +;
+    --piece-theme-operator-inverse: -;
+}
+
+.piece-light {
+    --piece-theme: 100%;
+    --piece-theme-inverse: 0%;
+    --piece-theme-operator: -;
+    --piece-theme-operator-inverse: +;
+}
+
+/* Inverse — inverte o tema do elemento em relação ao tema global do pai */
+.piece-dark .piece-inverse {
+    --piece-theme: 100%;
+    --piece-theme-inverse: 0%;
+    --piece-theme-operator: -;
+    --piece-theme-operator-inverse: +;
+}
+.piece-light .piece-inverse {
+    --piece-theme: 0%;
+    --piece-theme-inverse: 100%;
+    --piece-theme-operator: +;
+    --piece-theme-operator-inverse: -;
+}
+
+/* ── Harmonias — definem primary / secondary / tertiary ─────────── */
+
+.piece-triade {
+    --piece-primary:   var(--piece-base-h);
+    --piece-secondary: calc(var(--piece-base-h) + 120);
+    --piece-tertiary:  calc(var(--piece-base-h) + 240);
+}
+
+.piece-analoga {
+    --piece-primary:   var(--piece-base-h);
+    --piece-secondary: calc(var(--piece-base-h) + 30);
+    --piece-tertiary:  calc(var(--piece-base-h) + 90);
+}
+
+.piece-complementar {
+    --piece-primary:   var(--piece-base-h);
+    --piece-secondary: calc(var(--piece-base-h) + 120);
+    --piece-tertiary:  calc(var(--piece-base-h) + 150);
+}
+
+.piece-mono {
+    --piece-primary:   var(--piece-base-h);
+    --piece-secondary: var(--piece-base-h);
+    --piece-tertiary:  var(--piece-base-h);
+}
+
+.piece-art {
+    --piece-primary:   270;
+    --piece-secondary: 230;
+    --piece-tertiary:  300;
+}
+
+/* ── Canais de cor — trocam --piece-h pelo canal escolhido ───────── */
+
+.piece-primary   { --piece-h: var(--piece-primary);   }
+.piece-secondary { --piece-h: var(--piece-secondary); }
+.piece-tertiary  { --piece-h: var(--piece-tertiary);  }
+
+/* Canais por estado */
+.piece-primary-hover:hover    { --piece-h: var(--piece-primary);   }
+.piece-secondary-hover:hover  { --piece-h: var(--piece-secondary); }
+.piece-tertiary-hover:hover   { --piece-h: var(--piece-tertiary);  }
+
+.piece-primary-active.piece-actived   { --piece-h: var(--piece-primary);   }
+.piece-secondary-active.piece-actived { --piece-h: var(--piece-secondary); }
+.piece-tertiary-active.piece-actived  { --piece-h: var(--piece-tertiary);  }
+
+.piece-primary-hover-active.piece-actived:hover   { --piece-h: var(--piece-primary);   }
+.piece-secondary-hover-active.piece-actived:hover { --piece-h: var(--piece-secondary); }
+.piece-tertiary-hover-active.piece-actived:hover  { --piece-h: var(--piece-tertiary);  }
+

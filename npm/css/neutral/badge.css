@@ -1,0 +1,56 @@
+/* @arrtu/pieces — neutral/badge
+   Indicador visual posicionado sobre o pai (position: absolute por padrão).
+   Use .piece-inline para fluxo normal quando necessário.
+   Raiz obrigatoriamente .piece-surface para tokens de cor.
+*/
+
+.piece-badge {
+    --badge-radius: 3px;
+
+    position: absolute;
+    top: -4px;
+    right: -4px;
+
+    user-select: none;
+    border-radius: var(--badge-radius);
+    display: grid;
+    grid-auto-flow: column;
+    place-items: center;
+    pointer-events: none;
+    font-size: 11px;
+    font-weight: 500;
+    text-wrap: nowrap;
+    gap: 2px;
+
+    .piece-icon { font-size: 12px; line-height: 1; }
+
+    /* ── Variantes ──────────────────────────────────────────────── */
+
+    /* Default — contador numérico (16×16) */
+    &:not(.piece-small):not(.piece-large) {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Dot — indicador sem texto */
+    &.piece-small {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    /* Large — texto, "99+", ícone + texto */
+    &.piece-large {
+        height: 16px;
+        min-width: 16px;
+        padding: 0 4px;
+    }
+
+    /* ── Modificadores ──────────────────────────────────────────── */
+
+    /* Pill — border-radius máximo, combinável com .piece-large */
+    &.piece-pill { border-radius: 50px; }
+
+    /* Inline — devolve ao fluxo normal (exceção) */
+    &.piece-inline { position: static; }
+}

@@ -1,0 +1,151 @@
+/* @arrtu/pieces — core/surface
+   Sistema base de superfícies: variáveis de cor, alpha, blur, border, box-shadow,
+   disabled, skeleton e visibilidade piece-true/false.
+*/
+
+.piece-surface {
+
+    position: relative;
+    border: none;
+
+    /* ── Hue por propriedade ── */
+    --piece-background-color-h:              var(--piece-h);
+    --piece-text-color-h:                    var(--piece-h);
+    --piece-border-color-h:                  var(--piece-h);
+    --piece-box-shadow-color-h:              var(--piece-h);
+    --piece-ripple-color-h:                  var(--piece-h);
+    --piece-scrollbar-track-outline-color-h: var(--piece-h);
+    --piece-scrollbar-thumb-background-color-h: var(--piece-h);
+    --piece-scrollbar-thumb-border-color-h:  var(--piece-h);
+
+    /* ── Alpha por propriedade (default: sólido) ── */
+    --piece-background-a:                1;
+    --piece-text-a:                      1;
+    --piece-border-a:                    1;
+    --piece-box-shadow-a:                1;
+    --piece-ripple-a:                    1;
+    --piece-scrollbar-track-outline-a:   1;
+    --piece-scrollbar-thumb-background-a:1;
+    --piece-scrollbar-thumb-border-a:    1;
+
+    /* ── Blur ── */
+    --piece-blur: 0px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    /* ── Variáveis computadas de cor ── */
+    --ripple-color: hsla(
+        var(--piece-ripple-color-h),
+        var(--piece-s),
+        var(--piece-ripple-color),
+        var(--piece-ripple-a)
+    );
+
+    /* ── Aplicação de cor ── */
+    background: hsla(
+        var(--piece-background-color-h),
+        var(--piece-s),
+        var(--piece-background-color),
+        var(--piece-background-a)
+    );
+
+    color: hsla(
+        var(--piece-text-color-h),
+        var(--piece-s),
+        var(--piece-text-color),
+        var(--piece-text-a)
+    );
+
+    border-color: hsla(
+        var(--piece-border-color-h),
+        var(--piece-s),
+        var(--piece-border-color),
+        var(--piece-border-a)
+    );
+
+    /* ── Modificadores ── */
+    &.piece-box-shadow {
+        box-shadow: 0px 0px 4px 0px hsla(
+            var(--piece-box-shadow-color-h),
+            var(--piece-s),
+            var(--piece-box-shadow-color),
+            var(--piece-box-shadow-a)
+        );
+    }
+
+    &.piece-border {
+        border-width: 1px;
+        border-style: solid;
+    }
+
+    &.piece-disabled {
+        background:   hsla(0, 0%, var(--piece-theme-inverse), 0.04);
+        color:        hsla(0, 0%, var(--piece-theme-inverse), 0.12);
+        border-color: hsla(0, 0%, var(--piece-theme-inverse), 0.04);
+        user-select:  none;
+        outline:      none;
+        cursor:       not-allowed !important;
+        * { pointer-events: none; }
+
+        /* Propaga cores disabled para filhos com .piece-surface */
+        .piece-surface {
+            background:   hsla(0, 0%, var(--piece-theme-inverse), 0.04);
+            color:        hsla(0, 0%, var(--piece-theme-inverse), 0.12);
+            border-color: hsla(0, 0%, var(--piece-theme-inverse), 0.04);
+        }
+    }
+
+    &.piece-skeleton {
+        animation: piece-skeleton-loading 1s infinite alternate;
+        border-width: 0 !important;
+        color: transparent;
+    }
+
+    /* ── Visibilidade por estado (piece-true / piece-false) ──────────
+       .piece-true  → oculto por padrão, visível quando actived
+       .piece-false → visível por padrão, oculto quando actived
+       Gatilhos: .piece-actived (toggle.js) | input.piece-controller:checked
+       ──────────────────────────────────────────────────────────────── */
+    .piece-true { display: none; }
+
+    &.piece-actived,
+    &:has(input.piece-controller:checked) {
+        .piece-false { display: none; }
+        .piece-true  { display: grid; }
+    }
+}
+
+@keyframes piece-skeleton-loading {
+    from { opacity: .4; }
+    to   { opacity: 1;  }
+}
+
+/* ── Material Symbols — contém fallback text e mostra placeholder ── */
+.material-symbols-rounded {
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+    position: relative;
+    -webkit-text-fill-color: transparent;
+}
+
+.material-symbols-rounded::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentColor;
+    pointer-events: none;
+}
+
+.icons-loaded .material-symbols-rounded {
+    -webkit-text-fill-color: unset;
+}
+
+.icons-loaded .material-symbols-rounded::after {
+    display: none;
+}

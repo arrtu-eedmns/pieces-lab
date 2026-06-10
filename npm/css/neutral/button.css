@@ -1,0 +1,130 @@
+/* @arrtu/pieces — neutral/button
+   ─────────────────────────────────────────────────────────────────
+   Botão com label e ícone opcional.
+   Nunca use somente ícone — para isso use icon-button.
+
+   Estrutura mínima:
+     <button class="piece-surface piece-button piece-medium">
+       <span class="piece-ripple"></span>
+       <span class="piece-label">Label</span>
+     </button>
+
+   Com ícone:
+     <button class="piece-surface piece-button piece-medium">
+       <span class="piece-ripple"></span>
+       <span class="piece-icon material-symbols-rounded">star</span>
+       <span class="piece-label">Label</span>
+     </button>
+
+   Toggle — adicione .piece-toggle para comportamento de seleção:
+     <button class="piece-surface piece-button piece-medium piece-toggle ...">
+       <span class="piece-ripple"></span>
+       <span class="piece-label">Label</span>
+     </button>
+
+   Com piece-true / piece-false (visibilidade por estado — gerenciado pelo core):
+     <button class="piece-surface piece-button piece-medium piece-toggle ...">
+       <span class="piece-ripple"></span>
+       <span class="piece-false piece-icon material-symbols-rounded">star</span>
+       <span class="piece-true  piece-icon material-symbols-rounded">star</span>
+       <span class="piece-label">Label</span>
+     </button>
+
+   Group — use dentro de .piece-group (ver group.css):
+     <div class="piece-group">
+       <button class="piece-surface piece-button piece-medium piece-toggle ...">...</button>
+       <button class="piece-surface piece-button piece-medium piece-toggle ...">...</button>
+     </div>
+   ─────────────────────────────────────────────────────────────────
+*/
+
+.piece-button {
+    box-sizing: border-box;
+    display: grid;
+    grid-auto-flow: column;
+    place-content: center;
+    place-items: center;
+    text-decoration: none;
+    cursor: var(--cursor-pointer);
+    transition:
+        background 0.3s ease,
+        border-radius 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    height: var(--height);
+    border-radius: var(--border-radius);
+    font-weight: 400;
+    letter-spacing: 0;
+
+    :where(*, * *) {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .piece-label {
+        display: grid;
+        place-content: center;
+        text-wrap: nowrap;
+
+        &.piece-true  { display: none; }
+        &.piece-false { display: grid; }
+    }
+
+    &.piece-actived {
+        .piece-label.piece-true  { display: grid; }
+        .piece-label.piece-false { display: none; }
+    }
+
+    &:active,
+    &.piece-actived {
+        border-radius: var(--active-radius);
+    }
+
+    /* ── Tamanhos ─────────────────────────────────────────────── */
+
+    &.piece-extra-small {
+        --height:        24px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        padding: 0 8px;
+        gap:     4px;
+        .piece-label { font-size: 11px; }
+        .piece-icon  { font-size: 14px; }
+    }
+    &.piece-small {
+        --height:        28px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        padding: 0 10px;
+        gap:     4px;
+        .piece-label { font-size: 12px; }
+        .piece-icon  { font-size: 15px; }
+    }
+    &.piece-medium {
+        --height:        32px;
+        --border-radius: 4px;
+        --active-radius: 4px;
+        padding: 0 12px;
+        gap:     6px;
+        .piece-label { font-size: 13px; }
+        .piece-icon  { font-size: 16px; }
+    }
+    &.piece-large {
+        --height:        40px;
+        --border-radius: 5px;
+        --active-radius: 5px;
+        padding: 0 16px;
+        gap:     8px;
+        .piece-label { font-size: 14px; }
+        .piece-icon  { font-size: 18px; }
+    }
+    &.piece-extra-large {
+        --height:        48px;
+        --border-radius: 6px;
+        --active-radius: 6px;
+        padding: 0 20px;
+        gap:     8px;
+        .piece-label { font-size: 15px; }
+        .piece-icon  { font-size: 20px; }
+    }
+}

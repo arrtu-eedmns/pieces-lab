@@ -1,0 +1,40 @@
+/* @arrtu/pieces — utils/ripple
+   Efeito ripple granulado para componentes com .piece-ripple.
+   Requer: ripple.js
+*/
+
+/* wrapper fixo — clipa o efeito ao border-radius do componente */
+.piece-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* bolha animada gerada por ripple.js */
+.piece-ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 1;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+
+    background-image: radial-gradient(circle, var(--ripple-color) 1px, transparent 1px);
+    --background-size: 3px;
+    background-size: var(--background-size) var(--background-size);
+}
+
+.piece-ripple-effect.animate {
+    animation: ripple-expand 0.8s ease-out forwards;
+}
+
+@keyframes ripple-expand {
+    to {
+        width: var(--ripple-size);
+        height: var(--ripple-size);
+        opacity: 0;
+    }
+}

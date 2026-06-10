@@ -1,0 +1,7 @@
+/* @arrtu/pieces — barrel completo
+   Importa core + todos os kits.
+   Uso: @import "@arrtu/pieces/all";
+*/
+
+@import "./core/pieces.css";
+@import "./pieces.neutral.css";

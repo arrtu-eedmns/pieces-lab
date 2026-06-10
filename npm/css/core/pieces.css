@@ -1,0 +1,7 @@
+/* @arrtu/pieces — barrel core
+   Importa surface + theme.
+   Uso: @import "@arrtu/pieces/css/core/pieces.css";
+*/
+
+@import "./theme.css";
+@import "./surface.css";

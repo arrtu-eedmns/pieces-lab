@@ -1,0 +1,112 @@
+/* @arrtu/pieces — neutral/menu
+   ─────────────────────────────────────────────────────────────────
+   Menu contextual: lista de ações ancorada a um elemento gatilho.
+   Outlined — usa border, sem shadow.
+   Requer piece-interactive (core/interactive.js) para open/close.
+   O .piece-interactive deve ter position: relative.
+
+   Estrutura mínima:
+     <div class="piece-interactive" style="position:relative;display:inline-flex;">
+       <!-- qualquer elemento gatilho -->
+       <ul class="piece-menu piece-surface piece-border
+                  background-color-auto-02 border-color-auto-06">
+         <li class="piece-menu-item piece-surface
+                    background-color-auto-00 background-color-auto-04-hover
+                    text-color-auto-20">
+           <span class="piece-ripple"></span>
+           <span class="piece-menu-item-label">Item</span>
+         </li>
+       </ul>
+     </div>
+   ─────────────────────────────────────────────────────────────────
+*/
+
+/* ── Container ───────────────────────────────────────────── */
+.piece-menu {
+    list-style: none;
+    display: none;
+    flex-direction: column;
+    min-width: 160px;
+    max-width: 320px;
+    padding: 4px;
+    border-radius: 12px;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 200;
+    border-width: 1px;
+    border-style: solid;
+}
+
+.piece-interactive.piece-actived > .piece-menu {
+    display: flex;
+}
+
+/* ── Posição: acima do gatilho ───────────────────────────── */
+.piece-menu.piece-menu-top {
+    top: auto;
+    bottom: calc(100% + 6px);
+}
+
+/* ── Posição: alinhado à direita ─────────────────────────── */
+.piece-menu.piece-menu-end {
+    left: auto;
+    right: 0;
+}
+
+/* ── Item ────────────────────────────────────────────────── */
+.piece-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    user-select: none;
+    list-style: none;
+
+    .piece-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+}
+
+/* ── Label do item ───────────────────────────────────────── */
+.piece-menu-item-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Trailing (atalho de teclado, badge, ícone secundário) ── */
+.piece-menu-item-trailing {
+    margin-left: auto;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* ── Divider ─────────────────────────────────────────────── */
+.piece-menu-divider {
+    height: 0;
+    margin: 4px 0;
+    border-top-width: 1px;
+    border-top-style: solid;
+    list-style: none;
+}
+
+/* ── Subheader de seção (não-interativo) ─────────────────── */
+.piece-menu-section {
+    padding: 6px 12px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    user-select: none;
+    list-style: none;
+}

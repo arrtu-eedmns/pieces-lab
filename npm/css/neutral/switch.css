@@ -1,0 +1,101 @@
+/* @arrtu/pieces — neutral/switch
+   Toggle visual que representa um estado ligado/desligado.
+   Estado controlado por .piece-actived via toggle.js — sem <input> necessário.
+   Raiz obrigatoriamente <button class="piece-toggle"> para acessibilidade nativa
+   e para que o ripple.js dispare corretamente.
+*/
+
+.piece-switch {
+    --switch-radius: 32px;
+
+    width: 50px;
+    height: 30px;
+    border-radius: var(--switch-radius);
+    display: grid;
+    border-style: solid;
+    border-width: 1px;
+    overflow: hidden;
+    position: relative;
+    cursor: var(--cursor-pointer);
+    transition:
+        background-color .3s cubic-bezier(0.2, 0, 0, 1),
+        border-color     .3s cubic-bezier(0.2, 0, 0, 1);
+
+    :where(*, * *) {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .piece-indicator {
+        --indicator-radius: 32px;
+
+        width: 16px;
+        height: 16px;
+        border-radius: var(--indicator-radius);
+        display: grid;
+        place-items: center;
+        margin: 6px 6px;
+        transition:
+            width            .25s cubic-bezier(0.2, 0, 0, 1),
+            height           .25s cubic-bezier(0.2, 0, 0, 1),
+            margin           .25s cubic-bezier(0.2, 0, 0, 1),
+            border-radius    .25s cubic-bezier(0.2, 0, 0, 1),
+            background-color .3s  cubic-bezier(0.2, 0, 0, 1);
+
+        .piece-icon {
+            font-size: 16px;
+            line-height: 1;
+            transition: color .3s cubic-bezier(0.2, 0, 0, 1);
+        }
+    }
+
+    /* ── Dimensão do indicador por variante ──────────────────────────
+       Sem ícone | Só ON (.piece-true sem .piece-false):
+         indicador começa pequeno (16px) no OFF, cresce no ON (24px)
+       Só OFF | Ambos (.piece-false presente):
+         indicador começa médio (24px) no OFF, mantém tamanho no ON
+    ──────────────────────────────────────────────────────────────── */
+
+    &:not(:has(.piece-false)) {
+        .piece-indicator { width: 16px; height: 16px; margin: 6px 6px; }
+
+        &.piece-actived {
+            .piece-indicator { width: 24px; height: 24px; margin: 2px 22px; }
+        }
+        &:not(.piece-disabled):active:not(.piece-actived) {
+            .piece-indicator { width: 28px; height: 28px; margin: 0px 0px; }
+        }
+        &:not(.piece-disabled):active.piece-actived {
+            .piece-indicator { width: 28px; height: 28px; margin: 0px 20px; }
+        }
+    }
+
+    &:has(.piece-false) {
+        .piece-indicator { width: 24px; height: 24px; margin: 2px 2px; }
+
+        &.piece-actived {
+            .piece-indicator { width: 24px; height: 24px; margin: 2px 22px; }
+        }
+        &:not(.piece-disabled):active:not(.piece-actived) {
+            .piece-indicator { width: 28px; height: 28px; margin: 0px 0px; }
+        }
+        &:not(.piece-disabled):active.piece-actived {
+            .piece-indicator { width: 28px; height: 28px; margin: 0px 20px; }
+        }
+    }
+
+    /* ── piece-true / piece-false ─────────────────────────────────
+       Controlado por .piece-actived (toggle.js).
+       Gerenciado internamente — não depende do surface.css.
+    ──────────────────────────────────────────────────────────────── */
+
+    &:not(.piece-actived) {
+        .piece-false { display: grid; place-items: center; }
+        .piece-true  { display: none; }
+    }
+
+    &.piece-actived {
+        .piece-false { display: none; }
+        .piece-true  { display: grid; place-items: center; }
+    }
+}
