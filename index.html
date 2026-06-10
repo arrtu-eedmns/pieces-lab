@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pieces Lab</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ital,wght@0,100..700;1,100..700&display=swap">
+
+    <!-- Pieces Core -->
+    <link rel="stylesheet" href="../npm/css/core/theme.css">
+    <link rel="stylesheet" href="../npm/css/core/surface.css">
+    <link rel="stylesheet" href="../npm/css/utils/ripple.css">
+
+    <!-- Neutral Kit -->
+    <link rel="stylesheet" href="../npm/css/neutral/button.css">
+    <link rel="stylesheet" href="../npm/css/neutral/icon-button.css">
+    <link rel="stylesheet" href="../npm/css/neutral/switch.css">
+
+    <!-- App -->
+    <link rel="stylesheet" href="css/app.css">
+
+    <!-- piece-css-generator blocking; demais com defer -->
+    <script src="../npm/js/core/piece-css-generator.js"></script>
+    <script defer src="../npm/js/utils/ripple.js"></script>
+    <script defer src="../npm/js/core/toggle.js"></script>
+    <script defer src="../npm/js/core/disabled.js"></script>
+    <script defer src="js/paso.js"></script>
+    <script defer src="js/views/inicio.js"></script>
+    <script defer src="js/views/contatos.js"></script>
+    <script defer src="js/views/configuracoes.js"></script>
+    <script defer src="js/app.js"></script>
+</head>
+
+<body class="piece-surface piece-light piece-triade piece-primary background-color-auto-02 text-color-auto-20">
+
+    <!-- ── Sidebar (desktop) / Bottom nav (mobile) ─────── -->
+    <aside id="p-aside" class="piece-surface background-color-auto-02">
+        <div class="p-brand">
+            <span class="material-symbols-rounded piece-surface text-color-auto-12">science</span>
+            <span class="p-brand-name piece-surface text-color-auto-22">Pieces Lab</span>
+        </div>
+        <nav id="p-nav"></nav>
+    </aside>
+
+    <div id="p-divider" class="piece-surface piece-border border-color-auto-05"></div>
+
+    <!-- ── Content ──────────────────────────────────────── -->
+    <main id="p-main"></main>
+
+    <!-- ── Top header (mobile only) ─────────────────────── -->
+    <header id="p-header" class="piece-surface background-color-auto-02 piece-border border-color-auto-05">
+        <span id="p-page-title" class="piece-surface text-color-auto-20">—</span>
+        <div id="p-header-nav"></div>
+    </header>
+
+    <!-- ── Screen-size simulator ─────────────────────────── -->
+    <div id="p-size-bar" class="piece-surface background-color-auto-03 piece-border border-color-auto-06">
+        <span class="piece-surface text-color-auto-14 p-size-label">tela</span>
+        <div id="p-size-btns"></div>
+    </div>
+
+</body>
+</html>
