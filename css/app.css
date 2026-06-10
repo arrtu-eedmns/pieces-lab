@@ -151,9 +151,51 @@ body {
 }
 
 /* ── Main ────────────────────────────────────────────────── */
+/* Nota: #p-main não define container — um container não pode
+   consultar a si mesmo via @container. Usamos @container corpo. */
 #p-main {
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+/* ── Primary panel ───────────────────────────────────────── */
+#p-main-primary {
     overflow-y: auto;
     overflow-x: hidden;
+    min-width: 0;
+}
+
+/* ── Secondary panel ─────────────────────────────────────── */
+#p-main-secondary {
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+#p-main-secondary.piece-actived {
+    display: flex;
+}
+
+/* Narrow (< 861px corpo): secondary cobre o body como overlay */
+@container corpo (max-width: 860px) {
+    #p-main-secondary.piece-actived {
+        position: absolute;
+        inset: 0;
+        z-index: 100;
+    }
+}
+
+/* Wide (≥ 861px corpo): secondary vira coluna ao lado do primário */
+@container corpo (min-width: 861px) {
+    #p-main {
+        grid-template-columns: 320px 1fr;
+    }
+    #p-main-primary {
+        border-right-width: 1px;
+        border-right-style: solid;
+    }
 }
 
 /* ── Size simulator ──────────────────────────────────────── */
@@ -197,13 +239,41 @@ body {
 }
 
 /* ── View container ──────────────────────────────────────── */
-#p-main > section {
+#p-main-primary > section {
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 24px;
     min-height: 100%;
     container-name: view;
+    container-type: inline-size;
+}
+
+/* ── Panel container ─────────────────────────────────────── */
+#p-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+
+#p-panel-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#p-main-secondary > section {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    container-name: panel;
     container-type: inline-size;
 }
 
