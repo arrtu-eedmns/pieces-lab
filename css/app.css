@@ -8,31 +8,47 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
-    width: 100vw;
-    height: 100vh;
+    /* Fundo pontilhado visível ao redor quando em modo simulado */
+    background-image: radial-gradient(
+        circle at center,
+        hsla(0, 0%, 48%, 48%) 0%,
+        hsla(0, 0%, 48%, 48%) 16%,
+        transparent 1%
+    );
+    background-size: 8px 8px;
+    background-repeat: repeat;
+
     display: grid;
     place-self: center;
     font-family: 'Google Sans Flex', sans-serif;
+
+    width: 100vw;
+    height: 100vh;
+
     container-name: corpo;
     container-type: inline-size;
 
     /* Simulador: html encolhe junto com o body para o @container reagir */
-    &:has(body.screen-mobile)  { width: 390px;  height: 844px;  }
-    &:has(body.screen-tablet)  { width: 768px;  height: 1024px; }
-    &:has(body.screen-hd)      { width: 1280px; height: 720px;  }
+    &:has(body.screen-size-default) { width: 100%;    height: 100%;    }
+    &:has(body.screen-size-mobile)  { width: 414px;   height: 896px;   }
+    &:has(body.screen-size-svga)    { width: 800px;   height: 600px;   }
+    &:has(body.screen-size-hd)      { width: 1280px;  height: 720px;   }
+    &:has(body.screen-size-fullhd)  { width: 1920px;  height: 1080px;  }
 }
 
 body {
     inset: 0;
     margin: auto;
-    position: absolute;
+    position: absolute !important;
     overflow: hidden;
     display: grid;
 
-    /* Dimensões simuladas */
-    &.screen-mobile  { width: 390px;  height: 844px;  }
-    &.screen-tablet  { width: 768px;  height: 1024px; }
-    &.screen-hd      { width: 1280px; height: 720px;  }
+    /* Dimensões simuladas — mesmas classes do Nexus */
+    &.screen-size-default { width: 100%;   height: 100%;   }
+    &.screen-size-mobile  { width: 414px;  height: 896px;  }
+    &.screen-size-svga    { width: 800px;  height: 600px;  }
+    &.screen-size-hd      { width: 1280px; height: 720px;  }
+    &.screen-size-fullhd  { width: 1920px; height: 1080px; }
 }
 
 /* ── Desktop (≥ 600px) ───────────────────────────────────── */

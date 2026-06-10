@@ -109,10 +109,11 @@ const PASO = {
     // ── Screen-size simulator ────────────────────────────────────────────────
     _buildSizeBar() {
         const sizes = [
-            { label: 'default', w: null,     h: null      },
-            { label: 'mobile',  w: '390px',  h: '844px'   },
-            { label: 'tablet',  w: '768px',  h: '1024px'  },
-            { label: 'hd',      w: '1280px', h: '720px'   },
+            { label: 'default', cls: 'screen-size-default' },
+            { label: 'mobile',  cls: 'screen-size-mobile'  },
+            { label: 'svga',    cls: 'screen-size-svga'    },
+            { label: 'hd',      cls: 'screen-size-hd'      },
+            { label: 'fullhd',  cls: 'screen-size-fullhd'  },
         ]
 
         const container = this.$('#p-size-btns')
@@ -149,11 +150,12 @@ const PASO = {
     },
 
     _applySize(label) {
-        // Remove qualquer classe screen-* anterior e adiciona a nova
-        // O html usa :has(body.screen-*) para se redimensionar junto,
-        // garantindo que o @container corpo reaja ao tamanho simulado
-        document.body.classList.remove('screen-mobile', 'screen-tablet', 'screen-hd')
-        if (label !== 'default') document.body.classList.add(`screen-${label}`)
+        // Sempre aplica a classe correta — html usa :has(body.screen-size-*)
+        // para redimensionar junto, fazendo @container reagir ao tamanho simulado.
+        // 'default' recebe sua própria classe (width/height: 100%).
+        const all = ['screen-size-default','screen-size-mobile','screen-size-svga','screen-size-hd','screen-size-fullhd']
+        document.body.classList.remove(...all)
+        document.body.classList.add(`screen-size-${label}`)
     },
 
     // ── Dark mode ────────────────────────────────────────────────────────────
