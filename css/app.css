@@ -277,6 +277,74 @@ body {
     container-type: inline-size;
 }
 
+/* ── View Transitions ────────────────────────────────────── */
+@keyframes vt-slide-left {
+    from { transform: translateX(32px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes vt-slide-right {
+    from { transform: translateX(-32px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes vt-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+@keyframes vt-shrink-out {
+    from { transform: scale(1) translateX(0);    border-radius: 0px;  opacity: 1;   }
+    to   { transform: scale(0.9) translateX(5%); border-radius: 20px; opacity: 0.5; }
+}
+
+/* Forward: novo slide da direita */
+html[data-vt-dir="forward"]::view-transition-old(root) {
+    animation: 180ms ease-out both vt-fade-out;
+}
+html[data-vt-dir="forward"]::view-transition-new(root) {
+    animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-slide-left;
+}
+
+/* Back: atual encolhe, anterior surge da esquerda */
+html[data-vt-dir="back"]::view-transition-old(root) {
+    animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-shrink-out;
+}
+html[data-vt-dir="back"]::view-transition-new(root) {
+    animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-slide-right;
+}
+
+/* ── Swipe indicator ─────────────────────────────────────── */
+#p-swipe-indicator {
+    position: fixed;
+    pointer-events: none;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    padding: 14px 0;
+    opacity: 0;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+
+    .piece-icon {
+        font-size: 16px;
+        font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+    }
+}
+
+#p-swipe-indicator.p-side-left {
+    left: 0;
+    border-radius: 0 14px 14px 0;
+    transform: translateX(-100%) translateY(-50%);
+}
+#p-swipe-indicator.p-side-right {
+    right: 0;
+    border-radius: 14px 0 0 14px;
+    transform: translateX(100%) translateY(-50%);
+}
+#p-swipe-indicator.p-swipe-active {
+    opacity: 1;
+    transform: translateX(0) translateY(-50%);
+}
+
 /* ── Typography helpers ──────────────────────────────────── */
 .p-title {
     font-size: 22px;

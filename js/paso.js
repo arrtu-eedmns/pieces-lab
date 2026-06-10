@@ -8,6 +8,9 @@ const PASO = {
     panels: [],
     currentView: null,
     currentPanel: null,
+    _navId: 0,
+    _initialized: false,
+    _fromPopstate: false,
 
     // ── Utilitários DOM ──────────────────────────────────────────────────────
     $:  (sel, ctx = document) => ctx.querySelector(sel),
@@ -40,7 +43,9 @@ const PASO = {
     },
 
     // ── Renderiza view + painel ───────────────────────────────────────────────
-    renderView(hash) {
+    renderView(hash, isBack = false) {
+        document.documentElement.dataset.vtDir = isBack ? 'back' : 'forward'
+
         const parsed = this._parseHash(hash)
 
         const doRender = () => {
@@ -50,7 +55,7 @@ const PASO = {
                 : this._doClosePanel()
         }
 
-        if (document.startViewTransition) {
+        if (this._initialized && document.startViewTransition) {
             document.startViewTransition(doRender)
         } else {
             doRender()
@@ -120,17 +125,31 @@ const PASO = {
 
     // ── Navegação ─────────────────────────────────────────────────────────────
     navigate(viewName, ...params) {
-        location.hash = [this.slug(viewName), ...params].join('/')
+        const hash = [this.slug(viewName), ...params].join('/')
+        if (location.hash === `#${hash}`) return
+        this._navId++
+        history.pushState({ id: this._navId }, '', `#${hash}`)
+        this.renderView(hash, false)
     },
 
     openPanel(panelName, params = {}) {
         const basePath = location.hash.replace(/^#/, '').split('?')[0]
         const query    = new URLSearchParams({ panel: this.slug(panelName), ...params })
-        location.hash  = `${basePath}?${query}`
+        const hash     = `${basePath}?${query}`
+        this._navId++
+        history.pushState({ id: this._navId }, '', `#${hash}`)
+        this.renderView(hash, false)
     },
 
     closePanel() {
-        location.hash = location.hash.replace(/^#/, '').split('?')[0]
+        if ((history.state?.id ?? 0) > 0) {
+            history.back()  // popstate vai disparar com isBack = true
+        } else {
+            const hash = location.hash.replace(/^#/, '').split('?')[0]
+            this._navId++
+            history.pushState({ id: this._navId }, '', `#${hash}`)
+            this.renderView(hash, true)
+        }
     },
 
     // ── Nav ───────────────────────────────────────────────────────────────────
@@ -151,7 +170,7 @@ const PASO = {
                     text-color-auto-22-active
                     piece-primary-active"
                 data-nav="${s}"
-                onclick="location.hash='${s}'">
+                onclick="PASO.navigate('${v.name}')">
                 <span class="piece-ripple"></span>
                 <span class="material-symbols-rounded piece-icon">${v.icon}</span>
                 <span class="piece-label p-nav-label">${v.name}</span>
@@ -170,7 +189,7 @@ const PASO = {
                     text-color-auto-22-active
                     piece-primary-active"
                 data-nav="${s}"
-                onclick="location.hash='${s}'">
+                onclick="PASO.navigate('${v.name}')">
                 <span class="piece-ripple"></span>
                 <span class="material-symbols-rounded piece-icon">${v.icon}</span>
             </button>`
@@ -237,6 +256,44 @@ const PASO = {
         document.body.classList.toggle('piece-light', !dark)
     },
 
+    // ── Indicador de swipe ────────────────────────────────────────────────────
+    _initSwipeIndicator() {
+        const el   = this.$('#p-swipe-indicator')
+        const icon = el?.querySelector('.piece-icon')
+        if (!el) return
+
+        const EDGE = 28
+        let side = null
+
+        const show = (s, y) => {
+            el.classList.remove('p-side-left', 'p-side-right', 'p-swipe-active')
+            icon.textContent = s === 'left' ? 'arrow_back' : 'arrow_forward'
+            el.classList.add(s === 'left' ? 'p-side-left' : 'p-side-right')
+            el.style.top = `${y}px`
+            requestAnimationFrame(() => el.classList.add('p-swipe-active'))
+            side = s
+        }
+
+        const hide = () => {
+            el.classList.remove('p-swipe-active')
+            side = null
+        }
+
+        document.addEventListener('touchstart', e => {
+            const { clientX, clientY } = e.touches[0]
+            if (clientX <= EDGE) show('left', clientY)
+            else if (clientX >= window.innerWidth - EDGE) show('right', clientY)
+        }, { passive: true })
+
+        document.addEventListener('touchmove', e => {
+            if (!side) return
+            el.style.top = `${e.touches[0].clientY}px`
+        }, { passive: true })
+
+        document.addEventListener('touchend',    hide, { passive: true })
+        document.addEventListener('touchcancel', hide, { passive: true })
+    },
+
     // ── Init ──────────────────────────────────────────────────────────────────
     init() {
         const dark = this.storage.darkMode.get()
@@ -245,18 +302,37 @@ const PASO = {
 
         this._buildNav()
         this._buildSizeBar()
+        this._initSwipeIndicator()
 
         let initial = location.hash.replace(/^#/, '')
         if (!initial && this.views.length) {
             initial = this.slug(this.views[0].name)
-            history.replaceState(null, '', `#${initial}`)
         }
 
-        this.renderView(initial)
+        // Marca estado inicial no history
+        history.replaceState({ id: 0 }, '', initial ? `#${initial}` : location.href)
+        this._navId = 0
 
-        window.addEventListener('hashchange', () =>
-            this.renderView(location.hash.replace(/^#/, ''))
-        )
+        // Renderiza sem animação na carga inicial
+        this.renderView(initial)
+        this._initialized = true
+
+        // Back/forward do browser
+        window.addEventListener('popstate', e => {
+            this._fromPopstate = true
+            const newId  = e.state?.id ?? 0
+            const isBack = newId < this._navId
+            this._navId  = newId
+            this.renderView(location.hash.replace(/^#/, ''), isBack)
+        })
+
+        // Hash externo (URL digitada diretamente, links etc.)
+        window.addEventListener('hashchange', () => {
+            if (this._fromPopstate) { this._fromPopstate = false; return }
+            this._navId++
+            history.replaceState({ id: this._navId }, '')
+            this.renderView(location.hash.replace(/^#/, ''), false)
+        })
     }
 }
 
