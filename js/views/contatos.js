@@ -244,7 +244,7 @@ PASO.newView({
                         s.id === slotId ? { ...s, panelName: null, panelParams: {} } : s
                     )
                     history.replaceState({ id: PASO._navId }, '', `#${PASO._buildHash(slots)}`)
-                    PASO.renderAll(slots, false)
+                    PASO.renderAll(slots, false, true)
                 }
             })
             obs.observe(slotEl)

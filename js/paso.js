@@ -81,7 +81,7 @@ const PASO = {
     },
 
     // ── Renderização ─────────────────────────────────────────────────────────
-    renderAll(slots, isBack = false) {
+    renderAll(slots, isBack = false, skipTransition = false) {
         if (!slots.length) return
         // Restaura pesos salvos — não ficam na URL, vivem no localStorage
         const savedW = this.storage.slotWeights.get()
@@ -95,7 +95,7 @@ const PASO = {
             this._updateNav()
         }
 
-        if (this._initialized && document.startViewTransition) {
+        if (this._initialized && document.startViewTransition && !skipTransition) {
             document.startViewTransition(doRender)
         } else {
             doRender()
@@ -331,23 +331,15 @@ const PASO = {
             this._navId++
             history.pushState({ id: this._navId }, '', `#${hash}`)
         }
-        this.renderAll(slots, false)
+        this.renderAll(slots, false, silent)
     },
 
     closePanel(slotId = this._focusedSlot) {
-        if ((history.state?.id ?? 0) > 0) {
-            history.back()  // popstate dispara com isBack = true
-        } else {
-            const slots = this._slots.map(s =>
-                s.id === slotId
-                    ? { ...s, panelName: null, panelParams: {} }
-                    : s
-            )
-            const hash = this._buildHash(slots)
-            this._navId++
-            history.pushState({ id: this._navId }, '', `#${hash}`)
-            this.renderAll(slots, true)
-        }
+        const slots = this._slots.map(s =>
+            s.id === slotId ? { ...s, panelName: null, panelParams: {} } : s
+        )
+        history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
+        this.renderAll(slots, true)
     },
 
     // ── Context menu de nav ──────────────────────────────────────────────────
