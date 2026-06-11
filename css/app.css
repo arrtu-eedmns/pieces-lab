@@ -224,8 +224,8 @@ html:has(body.piece-dark) .p-slot-handle::after {
     flex: 1;
 }
 
-/* Header visível quando há 2+ slots */
-#p-main:has(.p-slot:nth-child(2)) .p-slot-header {
+/* Header visível quando há 2+ slots (handle existe = há pelo menos 2 slots) */
+#p-main:has(.p-slot-handle) .p-slot-header {
     display: flex;
 }
 
