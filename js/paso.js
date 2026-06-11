@@ -8,7 +8,7 @@ const PASO = {
     panels: [],
 
     // ── Estado ───────────────────────────────────────────────────────────────
-    _slots:        [],   // [{ id, viewId, panelName, panelParams }]
+    _slots:        [],   // [{ id, viewId, viewParams, panelName, panelParams }]
     _focusedSlot:  'a',
     _navId:        0,
     _initialized:  false,
@@ -36,7 +36,7 @@ const PASO = {
     newPanel(config) { this.panels.push(config) },
 
     // ── URL ──────────────────────────────────────────────────────────────────
-    // Formato: #a=view-id&a.panel=panel-id&a.key=val&b=other-view-id
+    // Formato: #a=view-id&a.v.key=viewParam&a.panel=panel-id&a.key=panelParam&b=view
     _parseHash(raw) {
         const clean = decodeURIComponent(raw.replace(/^#/, ''))
         if (!clean || !clean.includes('=')) return []
@@ -48,15 +48,18 @@ const PASO = {
             if (key.includes('.') || !val) continue
 
             const panelName   = params.get(`${key}.panel`) || null
+            const viewParams  = {}
             const panelParams = {}
 
             for (const [pk, pv] of params.entries()) {
-                if (pk.startsWith(`${key}.`) && pk !== `${key}.panel`) {
-                    panelParams[pk.slice(key.length + 1)] = pv
-                }
+                if (!pk.startsWith(`${key}.`) || pk === `${key}.panel`) continue
+                const rest = pk.slice(key.length + 1)
+                // a.v.key → viewParams; a.key → panelParams
+                if (rest.startsWith('v.')) viewParams[rest.slice(2)] = pv
+                else panelParams[rest] = pv
             }
 
-            slots.push({ id: key, viewId: val, panelName, panelParams })
+            slots.push({ id: key, viewId: val, viewParams, panelName, panelParams })
         }
 
         return slots
@@ -66,11 +69,11 @@ const PASO = {
         const params = new URLSearchParams()
         slots.forEach(s => {
             params.set(s.id, s.viewId)
+            // View params: a.v.key=val
+            Object.entries(s.viewParams || {}).forEach(([k, v]) => params.set(`${s.id}.v.${k}`, v))
             if (s.panelName) {
                 params.set(`${s.id}.panel`, s.panelName)
-                Object.entries(s.panelParams || {}).forEach(([k, v]) => {
-                    params.set(`${s.id}.${k}`, v)
-                })
+                Object.entries(s.panelParams || {}).forEach(([k, v]) => params.set(`${s.id}.${k}`, v))
             }
         })
         return params.toString()
@@ -161,7 +164,7 @@ const PASO = {
             : this._closeSlotPanel(slotEl)
     },
 
-    _renderSlotView(slotEl, { id, viewId }) {
+    _renderSlotView(slotEl, { id, viewId, viewParams }) {
         const view    = this.views.find(v => this._id(v) === viewId)
         const primary = slotEl.querySelector('.p-slot-primary')
         const titleEl = slotEl.querySelector('.p-slot-title')
@@ -190,7 +193,7 @@ const PASO = {
 
         const sectionId = `view-${id}-${viewId}`
         primary.innerHTML = `<section id="${sectionId}"></section>`
-        view.main(this.$(`#${sectionId}`), [])
+        view.main(this.$(`#${sectionId}`), viewParams || {})
     },
 
     _renderSlotPanel(slotEl, { id, panelName, panelParams }) {
@@ -234,14 +237,14 @@ const PASO = {
     },
 
     // ── Navegação ─────────────────────────────────────────────────────────────
-    navigate(viewId, slotId = this._focusedSlot) {
+    navigate(viewId, viewParams = {}, slotId = this._focusedSlot) {
         const view = this.views.find(v => this._id(v) === viewId)
         if (!view) return
 
         const rid   = this._id(view)
         const slots = this._slots.map(s =>
             s.id === slotId
-                ? { id: s.id, viewId: rid, panelName: null, panelParams: {} }
+                ? { id: s.id, viewId: rid, viewParams, panelName: null, panelParams: {} }
                 : s
         )
 
@@ -269,12 +272,11 @@ const PASO = {
 
         const usedIds = this._slots.map(s => s.id)
         const newId   = 'abcdefgh'.split('').find(c => !usedIds.includes(c)) || 'z'
-        const slots   = [...this._slots, { id: newId, viewId: rid, panelName: null, panelParams: {} }]
+        const slots   = [...this._slots, { id: newId, viewId: rid, viewParams: {}, panelName: null, panelParams: {} }]
         this._focusedSlot = newId
 
         const hash = this._buildHash(slots)
-        this._navId++
-        history.pushState({ id: this._navId }, '', `#${hash}`)
+        history.replaceState({ id: this._navId }, '', `#${hash}`)
         this.renderAll(slots, false)
     },
 
@@ -284,8 +286,7 @@ const PASO = {
         if (this._focusedSlot === slotId) this._focusedSlot = slots[0].id
 
         const hash = this._buildHash(slots)
-        this._navId++
-        history.pushState({ id: this._navId }, '', `#${hash}`)
+        history.replaceState({ id: this._navId }, '', `#${hash}`)
         this.renderAll(slots, false)
     },
 
@@ -461,6 +462,12 @@ const PASO = {
         this._buildSizeBar()
         this._initSwipeIndicator()
 
+        // Detecta dispositivo touch para selecionar animação de back correta
+        document.documentElement.classList.toggle(
+            'p-touch',
+            'ontouchstart' in window || navigator.maxTouchPoints > 0
+        )
+
         // Foco no slot ao clicar (event delegation)
         this.$('#p-main').addEventListener('click', e => {
             const slotEl = e.target.closest('[data-slot]')
@@ -476,7 +483,7 @@ const PASO = {
 
         if (!slots.length && this.views.length) {
             const first = this.views[0]
-            slots = [{ id: 'a', viewId: this._id(first), panelName: null, panelParams: {} }]
+            slots = [{ id: 'a', viewId: this._id(first), viewParams: {}, panelName: null, panelParams: {} }]
         }
 
         this._focusedSlot = slots[0]?.id || 'a'

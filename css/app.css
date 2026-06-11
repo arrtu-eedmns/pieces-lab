@@ -311,15 +311,17 @@ body {
     to   { transform: translateX(0);     opacity: 1; }
 }
 @keyframes vt-fade-out {
-    from { opacity: 1; }
-    to   { opacity: 0; }
+    to { opacity: 0; }
 }
 @keyframes vt-shrink-out {
-    from { transform: scale(1) translateX(0);    border-radius: 0px;  opacity: 1;   }
-    to   { transform: scale(0.9) translateX(5%); border-radius: 20px; opacity: 0.5; }
+    to { transform: scale(0.92) translateX(5%); border-radius: 20px; opacity: 0; }
+}
+@keyframes vt-back-in {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
 }
 
-/* Forward: novo slide da direita */
+/* Forward: atual some, novo slide da direita */
 html[data-vt-dir="forward"]::view-transition-old(root) {
     animation: 180ms ease-out both vt-fade-out;
 }
@@ -327,12 +329,28 @@ html[data-vt-dir="forward"]::view-transition-new(root) {
     animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-slide-left;
 }
 
-/* Back: atual encolhe, anterior surge da esquerda */
+/* Back — desktop: fade simples + slide da esquerda */
 html[data-vt-dir="back"]::view-transition-old(root) {
-    animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-shrink-out;
+    animation: 220ms ease-out both vt-fade-out;
 }
 html[data-vt-dir="back"]::view-transition-new(root) {
     animation: 280ms cubic-bezier(0.2, 0, 0, 1) both vt-slide-right;
+}
+
+/* Back — touch: atual encolhe, anterior surge opaca da esquerda (sem alpha gap) */
+html.p-touch[data-vt-dir="back"]::view-transition-old(root) {
+    animation: 300ms cubic-bezier(0.2, 0, 0, 1) both vt-shrink-out;
+}
+html.p-touch[data-vt-dir="back"]::view-transition-new(root) {
+    animation: 300ms cubic-bezier(0.2, 0, 0, 1) both vt-back-in;
+}
+
+/* Fundo do html acompanha o tema — evita flash durante transições */
+html:has(body.piece-dark) {
+    background-color: hsl(var(--piece-base-h), var(--piece-s), 8%);
+}
+html:has(body.piece-light) {
+    background-color: hsl(var(--piece-base-h), var(--piece-s), 92%);
 }
 
 /* ── Swipe indicator ─────────────────────────────────────── */
