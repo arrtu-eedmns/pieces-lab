@@ -36,7 +36,7 @@ const PASO = {
     newPanel(config) { this.panels.push(config) },
 
     // ── URL ──────────────────────────────────────────────────────────────────
-    // Formato: #a=view-id&a.v.key=viewParam&a.panel=panel-id&a.key=panelParam&b=view
+    // Formato: #a=view-id&a.w=1.5&a.v.key=viewParam&a.panel=panel-id&a.key=panelParam&b=view
     _parseHash(raw) {
         const clean = decodeURIComponent(raw.replace(/^#/, ''))
         if (!clean || !clean.includes('=')) return []
@@ -48,18 +48,19 @@ const PASO = {
             if (key.includes('.') || !val) continue
 
             const panelName   = params.get(`${key}.panel`) || null
+            const w           = parseFloat(params.get(`${key}.w`)) || 1
             const viewParams  = {}
             const panelParams = {}
 
             for (const [pk, pv] of params.entries()) {
-                if (!pk.startsWith(`${key}.`) || pk === `${key}.panel`) continue
+                if (!pk.startsWith(`${key}.`) || pk === `${key}.panel` || pk === `${key}.w`) continue
                 const rest = pk.slice(key.length + 1)
                 // a.v.key → viewParams; a.key → panelParams
                 if (rest.startsWith('v.')) viewParams[rest.slice(2)] = pv
                 else panelParams[rest] = pv
             }
 
-            slots.push({ id: key, viewId: val, viewParams, panelName, panelParams })
+            slots.push({ id: key, viewId: val, w, viewParams, panelName, panelParams })
         }
 
         return slots
@@ -69,6 +70,9 @@ const PASO = {
         const params = new URLSearchParams()
         slots.forEach(s => {
             params.set(s.id, s.viewId)
+            // Peso do slot — omite se for 1 (padrão) para não poluir URLs simples
+            const w = Math.round((s.w || 1) * 100) / 100
+            if (w !== 1) params.set(`${s.id}.w`, w)
             // View params: a.v.key=val
             Object.entries(s.viewParams || {}).forEach(([k, v]) => params.set(`${s.id}.v.${k}`, v))
             if (s.panelName) {
@@ -135,8 +139,21 @@ const PASO = {
             }
         })
 
-        // Atualiza CSS var para grid
-        main.style.setProperty('--p-slots', desired.length)
+        // Reconstrói handles entre slots adjacentes
+        main.querySelectorAll('.p-slot-handle').forEach(h => h.remove())
+        const slotEls = [...main.querySelectorAll('[data-slot]')]
+        slotEls.slice(0, -1).forEach(el => {
+            const handle = document.createElement('div')
+            handle.className = 'p-slot-handle'
+            el.after(handle)
+        })
+
+        // Aplica peso flex em cada slot
+        this._slots.forEach(s => {
+            const el = main.querySelector(`[data-slot="${s.id}"]`)
+            if (el) el.style.flexGrow = s.w || 1
+        })
+
         this._updateFocusedClass()
     },
 
@@ -272,7 +289,7 @@ const PASO = {
 
         const usedIds = this._slots.map(s => s.id)
         const newId   = 'abcdefgh'.split('').find(c => !usedIds.includes(c)) || 'z'
-        const slots   = [...this._slots, { id: newId, viewId: rid, viewParams: {}, panelName: null, panelParams: {} }]
+        const slots   = [...this._slots, { id: newId, viewId: rid, w: 1, viewParams: {}, panelName: null, panelParams: {} }]
         this._focusedSlot = newId
 
         const hash = this._buildHash(slots)
@@ -414,6 +431,57 @@ const PASO = {
         document.body.classList.toggle('piece-light', !dark)
     },
 
+    // ── Resize de slots ──────────────────────────────────────────────────────
+    _initSlotResize() {
+        const main = this.$('#p-main')
+        let drag = null
+
+        main.addEventListener('mousedown', e => {
+            const handle = e.target.closest('.p-slot-handle')
+            if (!handle) return
+            const slotAEl = handle.previousElementSibling
+            const slotBEl = handle.nextElementSibling
+            if (!slotAEl?.dataset.slot || !slotBEl?.dataset.slot) return
+
+            drag = {
+                handle,
+                slotAEl, slotBEl,
+                startX:  e.clientX,
+                startWA: parseFloat(slotAEl.style.flexGrow) || 1,
+                startWB: parseFloat(slotBEl.style.flexGrow) || 1,
+            }
+            handle.classList.add('p-handle-dragging')
+            document.documentElement.style.cursor    = 'col-resize'
+            document.documentElement.style.userSelect = 'none'
+            e.preventDefault()
+        })
+
+        window.addEventListener('mousemove', e => {
+            if (!drag) return
+            const totalW = drag.startWA + drag.startWB
+            const mainW  = main.getBoundingClientRect().width
+            const delta  = (e.clientX - drag.startX) / mainW * totalW
+            const newA   = Math.max(0.2, drag.startWA + delta)
+            const newB   = Math.max(0.2, totalW - newA)
+            drag.slotAEl.style.flexGrow = Math.max(0.2, totalW - newB)
+            drag.slotBEl.style.flexGrow = newB
+        })
+
+        window.addEventListener('mouseup', () => {
+            if (!drag) return
+            // Persiste pesos no estado dos slots
+            this.$$('[data-slot]', main).forEach(el => {
+                const slot = this._slots.find(s => s.id === el.dataset.slot)
+                if (slot) slot.w = Math.round(parseFloat(el.style.flexGrow) * 100) / 100
+            })
+            history.replaceState({ id: this._navId }, '', `#${this._buildHash(this._slots)}`)
+            drag.handle.classList.remove('p-handle-dragging')
+            document.documentElement.style.cursor    = ''
+            document.documentElement.style.userSelect = ''
+            drag = null
+        })
+    },
+
     // ── Indicador de swipe ────────────────────────────────────────────────────
     _initSwipeIndicator() {
         const el   = this.$('#p-swipe-indicator')
@@ -460,6 +528,7 @@ const PASO = {
 
         this._buildNav()
         this._buildSizeBar()
+        this._initSlotResize()
         this._initSwipeIndicator()
 
         // Detecta dispositivo touch para selecionar animação de back correta
@@ -483,7 +552,7 @@ const PASO = {
 
         if (!slots.length && this.views.length) {
             const first = this.views[0]
-            slots = [{ id: 'a', viewId: this._id(first), viewParams: {}, panelName: null, panelParams: {} }]
+            slots = [{ id: 'a', viewId: this._id(first), w: 1, viewParams: {}, panelName: null, panelParams: {} }]
         }
 
         this._focusedSlot = slots[0]?.id || 'a'

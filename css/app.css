@@ -153,32 +153,56 @@ body {
 /* ── Main ────────────────────────────────────────────────── */
 #p-main {
     overflow: hidden;
-    display: grid;
-    grid-template-columns: repeat(var(--p-slots, 1), 1fr);
+    display: flex;
 }
 
-/* Mobile: só o slot focado aparece */
+/* Mobile: só o slot focado aparece, handles somem */
 @container corpo (max-width: 860px) {
-    #p-main { grid-template-columns: 1fr; }
     .p-slot:not(.p-slot-focused) { display: none; }
+    .p-slot-handle { display: none !important; }
 }
 
 /* ── Slot ────────────────────────────────────────────────── */
 .p-slot {
+    flex: 1 1 0;
+    min-width: 200px;
     display: grid;
     grid-template-rows: auto 1fr;
     overflow: hidden;
     position: relative;
     container-name: slot;
     container-type: inline-size;
-    min-width: 0;
-    border-left-width: 0;
-    border-left-style: solid;
 }
 
-/* Borda entre slots adjacentes */
-.p-slot + .p-slot {
-    border-left-width: 1px;
+/* ── Handle de resize entre slots ───────────────────────── */
+.p-slot-handle {
+    flex: 0 0 5px;
+    cursor: col-resize;
+    position: relative;
+    z-index: 10;
+}
+
+.p-slot-handle::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 2px;
+    width: 1px;
+    transition: width 0.12s ease, left 0.12s ease, background-color 0.12s ease;
+}
+
+html:has(body.piece-light) .p-slot-handle::after {
+    background-color: hsl(var(--piece-base-h), var(--piece-s), 86%);
+}
+html:has(body.piece-dark) .p-slot-handle::after {
+    background-color: hsl(var(--piece-base-h), var(--piece-s), 18%);
+}
+
+.p-slot-handle:hover::after,
+.p-slot-handle.p-handle-dragging::after {
+    width: 3px;
+    left: 1px;
+    background-color: hsl(var(--piece-base-h), 54%, 58%);
 }
 
 /* ── Slot header ─────────────────────────────────────────── */
