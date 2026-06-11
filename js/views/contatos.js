@@ -211,17 +211,33 @@ PASO.newView({
             }
         }
 
-        // ResizeObserver — quando slot encolhe com contato selecionado, abre painel
+        // ResizeObserver — transições estreito↔largo com contato selecionado
         if (slotEl) {
+            let wasWide = slotEl.offsetWidth >= 500
             const obs = new ResizeObserver(entries => {
-                const w = entries[0]?.contentRect.width ?? 0
-                if (w >= 500) return
-                const sel = selectedBySlot.get(slotId)
-                if (sel === undefined) return
-                const already = PASO._slots.find(s => s.id === slotId)?.panelName
-                if (already) return  // painel já aberto
-                obs.disconnect()
-                PASO.openPanel('detalhe-contato', { id: String(sel) })
+                const w      = entries[0]?.contentRect.width ?? 0
+                const isWide = w >= 500
+                if (isWide === wasWide) return
+                wasWide = isWide
+
+                if (!isWide) {
+                    // Largo → estreito: abre painel overlay
+                    const sel = selectedBySlot.get(slotId)
+                    if (sel === undefined) return
+                    if (PASO._slots.find(s => s.id === slotId)?.panelName) return
+                    obs.disconnect()
+                    PASO.openPanel('detalhe-contato', { id: String(sel) })
+                } else {
+                    // Estreito → largo: fecha painel silenciosamente (replaceState, sem history.back)
+                    const slotState = PASO._slots.find(s => s.id === slotId)
+                    if (slotState?.panelName !== 'detalhe-contato') return
+                    obs.disconnect()
+                    const slots = PASO._slots.map(s =>
+                        s.id === slotId ? { ...s, panelName: null, panelParams: {} } : s
+                    )
+                    history.replaceState({ id: PASO._navId }, '', `#${PASO._buildHash(slots)}`)
+                    PASO.renderAll(slots, false)
+                }
             })
             obs.observe(slotEl)
         }
