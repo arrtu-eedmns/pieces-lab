@@ -11,45 +11,190 @@ const CONTATOS = [
     { nome: 'Diego Lopes',   cargo: 'Scrum Master',         dept: 'Produto',        email: 'diego@exemplo.com',  telefone: '+55 11 99000-0008', h: 220 },
 ]
 
+if (!document.getElementById('ct-style')) {
+    const s = document.createElement('style')
+    s.id = 'ct-style'
+    s.textContent = `
+        .ct-wrap {
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+        }
+        .ct-list-panel {
+            flex: 1;
+            min-width: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .ct-list-header {
+            padding: 24px 24px 12px;
+            flex-shrink: 0;
+        }
+        .ct-list-items {
+            padding: 0 24px 24px;
+        }
+        .ct-detail-panel {
+            display: none;
+            flex-direction: column;
+            width: 300px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            border-left-width: 1px;
+            border-left-style: solid;
+        }
+        @container slot (min-width: 500px) {
+            .ct-detail-panel { display: flex; }
+        }
+        .ct-detail-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            opacity: .45;
+            padding: 32px;
+        }
+        .ct-detail-content {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ct-item-selected {
+            background-color: hsl(var(--piece-base-h), calc(var(--piece-s) * 1.2), 90%) !important;
+        }
+        html:has(body.piece-dark) .ct-item-selected {
+            background-color: hsl(var(--piece-base-h), calc(var(--piece-s) * 1.2), 16%) !important;
+        }
+    `
+    document.head.appendChild(s)
+}
+
 // ── View: lista de contatos ───────────────────────────────
 PASO.newView({
     name: 'Contatos',
     icon: 'group',
 
     main(container) {
-        container.innerHTML = `
-            <div>
-                <h1 class="p-title piece-surface text-color-auto-22">Contatos</h1>
-                <p class="p-subtitle piece-surface text-color-auto-14" style="margin-top:4px">${CONTATOS.length} pessoas</p>
-            </div>
+        // Seção preenche o slot sem padding extra
+        container.style.cssText = 'padding:0;height:100%;overflow:hidden;min-height:0;gap:0;'
 
-            <div class="p-list piece-surface border-color-auto-05">
-                ${CONTATOS.map((c, i) => `
-                <button
-                    class="p-list-item piece-surface
-                        background-color-auto-00
-                        background-color-auto-03-hover
-                        border-color-auto-05
-                        text-color-auto-20"
-                    style="width:100%;text-align:left;cursor:pointer;"
-                    onclick="PASO.openPanel('detalhe-contato', { id: '${i}' })">
-                    <div style="
-                        width:38px;height:38px;border-radius:50%;flex-shrink:0;
-                        display:grid;place-content:center;
-                        font-size:14px;font-weight:700;color:#fff;
-                        background:hsl(${c.h},50%,48%)">${c.nome.split(' ').map(n => n[0]).join('').slice(0,2)}</div>
-                    <div class="p-list-item-info">
-                        <span class="p-list-item-name piece-surface text-color-auto-20">${c.nome}</span>
-                        <span class="p-list-item-sub piece-surface text-color-auto-14">${c.cargo}</span>
+        // isWide e renderDetailContent usam o slotEl passado como argumento
+        // (nunca o closure container, que pode estar detached em re-renders)
+        const renderDetailContent = (id, slotEl) => {
+            const c     = CONTATOS[id]
+            const panel = slotEl?.querySelector('.ct-detail-panel')
+            if (!panel) return
+            panel.innerHTML = `
+                <div class="ct-detail-content">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:8px">
+                        <div style="
+                            width:72px;height:72px;border-radius:50%;
+                            display:grid;place-content:center;
+                            font-size:26px;font-weight:700;color:#fff;
+                            flex-shrink:0;
+                            background:hsl(${c.h},50%,48%)">
+                            ${c.nome.split(' ').map(n => n[0]).join('').slice(0,2)}
+                        </div>
+                        <div style="text-align:center">
+                            <div class="piece-surface text-color-auto-22" style="font-size:18px;font-weight:700">${c.nome}</div>
+                            <div class="piece-surface text-color-auto-14" style="font-size:13px;margin-top:2px">${c.cargo} · ${c.dept}</div>
+                        </div>
                     </div>
-                    <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:18px">chevron_right</span>
-                </button>`).join('')}
+                    <div class="p-list piece-surface border-color-auto-05">
+                        <div class="p-list-item piece-surface background-color-auto-00 border-color-auto-05" style="cursor:default">
+                            <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:18px">mail</span>
+                            <div class="p-list-item-info">
+                                <span class="p-list-item-sub piece-surface text-color-auto-14">Email</span>
+                                <span class="p-list-item-name piece-surface text-color-auto-20">${c.email}</span>
+                            </div>
+                        </div>
+                        <div class="p-list-item piece-surface background-color-auto-00 border-color-auto-05" style="cursor:default">
+                            <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:18px">phone</span>
+                            <div class="p-list-item-info">
+                                <span class="p-list-item-sub piece-surface text-color-auto-14">Telefone</span>
+                                <span class="p-list-item-name piece-surface text-color-auto-20">${c.telefone}</span>
+                            </div>
+                        </div>
+                        <div class="p-list-item piece-surface background-color-auto-00 border-color-auto-05" style="cursor:default">
+                            <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:18px">apartment</span>
+                            <div class="p-list-item-info">
+                                <span class="p-list-item-sub piece-surface text-color-auto-14">Departamento</span>
+                                <span class="p-list-item-name piece-surface text-color-auto-20">${c.dept}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+        }
+
+        const selectContact = (id, btn) => {
+            // Usa o botão clicado como âncora — sempre no DOM atual
+            const slotEl = btn.closest('[data-slot]')
+            const wide   = slotEl ? slotEl.offsetWidth >= 500 : false
+
+            slotEl?.querySelectorAll('.ct-item').forEach((el, i) =>
+                el.classList.toggle('ct-item-selected', i === id)
+            )
+
+            if (wide) {
+                renderDetailContent(id, slotEl)
+            } else {
+                PASO.openPanel('detalhe-contato', { id: String(id) })
+            }
+        }
+
+        container.innerHTML = `
+            <div class="ct-wrap">
+                <div class="ct-list-panel">
+                    <div class="ct-list-header">
+                        <h1 class="p-title piece-surface text-color-auto-22">Contatos</h1>
+                        <p class="p-subtitle piece-surface text-color-auto-14" style="margin-top:4px">${CONTATOS.length} pessoas</p>
+                    </div>
+                    <div class="ct-list-items">
+                        <div class="p-list piece-surface border-color-auto-05">
+                            ${CONTATOS.map((c, i) => `
+                            <button
+                                class="ct-item p-list-item piece-surface
+                                    background-color-auto-00
+                                    background-color-auto-03-hover
+                                    border-color-auto-05
+                                    text-color-auto-20"
+                                style="width:100%;text-align:left;cursor:pointer;"
+                                data-i="${i}">
+                                <div style="
+                                    width:38px;height:38px;border-radius:50%;flex-shrink:0;
+                                    display:grid;place-content:center;
+                                    font-size:14px;font-weight:700;color:#fff;
+                                    background:hsl(${c.h},50%,48%)">${c.nome.split(' ').map(n => n[0]).join('').slice(0,2)}</div>
+                                <div class="p-list-item-info">
+                                    <span class="p-list-item-name piece-surface text-color-auto-20">${c.nome}</span>
+                                    <span class="p-list-item-sub piece-surface text-color-auto-14">${c.cargo}</span>
+                                </div>
+                                <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:18px">chevron_right</span>
+                            </button>`).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ct-detail-panel piece-surface background-color-auto-01 piece-border border-color-auto-05">
+                    <div class="ct-detail-empty">
+                        <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:36px">person</span>
+                        <span class="piece-surface text-color-auto-14" style="font-size:13px;text-align:center">Selecione um contato</span>
+                    </div>
+                </div>
             </div>
         `
+
+        container.querySelectorAll('.ct-item').forEach((el, i) =>
+            el.addEventListener('click', (e) => selectContact(i, e.currentTarget))
+        )
     }
 })
 
-// ── Painel: detalhe de contato ────────────────────────────
+// ── Painel: detalhe de contato (modo estreito) ────────────
 PASO.newPanel({
     name: 'detalhe-contato',
     title: 'Contato',
