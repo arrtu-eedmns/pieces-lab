@@ -80,12 +80,18 @@ PASO.newView({
     name: 'Contatos',
     icon: 'group',
 
-    main(container) {
+    main(container, viewParams = {}) {
         container.style.cssText = 'padding:0;height:100%;overflow:hidden;min-height:0;gap:0;'
 
         // slotEl/slotId capturados agora — container está no DOM neste momento
         const slotEl = container.closest('[data-slot]')
         const slotId = slotEl?.dataset.slot
+
+        // Semente vinda da URL (link compartilhado ou reload)
+        if (viewParams.id !== undefined) {
+            const pid = parseInt(viewParams.id)
+            if (!isNaN(pid)) selectedBySlot.set(slotId, pid)
+        }
 
         const renderDetailContent = (id, targetSlotEl) => {
             const c     = CONTATOS[id]
@@ -139,8 +145,9 @@ PASO.newView({
             const btnSlotId = btnSlotEl?.dataset.slot
             const wide      = btnSlotEl ? btnSlotEl.offsetWidth >= 500 : false
 
-            // Persiste seleção — sobrevive a re-renders
+            // Persiste seleção — sobrevive a re-renders e vai para a URL
             selectedBySlot.set(btnSlotId, id)
+            PASO.setViewParams({ id: String(id) }, btnSlotId)
 
             btnSlotEl?.querySelectorAll('.ct-item').forEach((el, i) =>
                 el.classList.toggle('ct-item-selected', i === id)
@@ -199,11 +206,12 @@ PASO.newView({
             el.addEventListener('click', (e) => selectContact(i, e.currentTarget))
         )
 
-        // Restaura seleção anterior (re-render após openPanel, etc.)
+        // Restaura seleção anterior (re-render após openPanel, navegação, etc.)
         const prevId = selectedBySlot.get(slotId)
         if (prevId !== null && prevId !== undefined && slotEl) {
             const wide = slotEl.offsetWidth >= 500
             if (wide) {
+                PASO.setViewParams({ id: String(prevId) }, slotId)
                 renderDetailContent(prevId, slotEl)
                 slotEl.querySelectorAll('.ct-item').forEach((el, i) =>
                     el.classList.toggle('ct-item-selected', i === prevId)

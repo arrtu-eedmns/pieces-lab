@@ -307,6 +307,15 @@ const PASO = {
         this.renderAll(slots, false)
     },
 
+    // Atualiza viewParams do slot sem criar entrada no histórico
+    setViewParams(params, slotId = this._focusedSlot) {
+        const slots = this._slots.map(s =>
+            s.id === slotId ? { ...s, viewParams: { ...s.viewParams, ...params } } : s
+        )
+        this._slots = slots
+        history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
+    },
+
     openPanel(panelName, params = {}, slotId = this._focusedSlot, { silent = false } = {}) {
         const rid   = this.slug(panelName)
         const slots = this._slots.map(s =>
