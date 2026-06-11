@@ -36,7 +36,8 @@ const PASO = {
     newPanel(config) { this.panels.push(config) },
 
     // ── URL ──────────────────────────────────────────────────────────────────
-    // Formato: #a=view-id&a.w=1.5&a.v.key=viewParam&a.panel=panel-id&a.key=panelParam&b=view
+    // Formato: #a=view-id&a.v.key=viewParam&a.panel=panel-id&a.key=panelParam&b=view
+    // Pesos de resize ficam no localStorage, não na URL
     _parseHash(raw) {
         const clean = decodeURIComponent(raw.replace(/^#/, ''))
         if (!clean || !clean.includes('=')) return []
@@ -48,19 +49,18 @@ const PASO = {
             if (key.includes('.') || !val) continue
 
             const panelName   = params.get(`${key}.panel`) || null
-            const w           = parseFloat(params.get(`${key}.w`)) || 1
             const viewParams  = {}
             const panelParams = {}
 
             for (const [pk, pv] of params.entries()) {
-                if (!pk.startsWith(`${key}.`) || pk === `${key}.panel` || pk === `${key}.w`) continue
+                if (!pk.startsWith(`${key}.`) || pk === `${key}.panel`) continue
                 const rest = pk.slice(key.length + 1)
                 // a.v.key → viewParams; a.key → panelParams
                 if (rest.startsWith('v.')) viewParams[rest.slice(2)] = pv
                 else panelParams[rest] = pv
             }
 
-            slots.push({ id: key, viewId: val, w, viewParams, panelName, panelParams })
+            slots.push({ id: key, viewId: val, w: 1, viewParams, panelName, panelParams })
         }
 
         return slots
@@ -70,9 +70,6 @@ const PASO = {
         const params = new URLSearchParams()
         slots.forEach(s => {
             params.set(s.id, s.viewId)
-            // Peso do slot — omite se for 1 (padrão) para não poluir URLs simples
-            const w = Math.round((s.w || 1) * 100) / 100
-            if (w !== 1) params.set(`${s.id}.w`, w)
             // View params: a.v.key=val
             Object.entries(s.viewParams || {}).forEach(([k, v]) => params.set(`${s.id}.v.${k}`, v))
             if (s.panelName) {
@@ -86,6 +83,9 @@ const PASO = {
     // ── Renderização ─────────────────────────────────────────────────────────
     renderAll(slots, isBack = false) {
         if (!slots.length) return
+        // Restaura pesos salvos — não ficam na URL, vivem no localStorage
+        const savedW = this.storage.slotWeights.get()
+        slots.forEach(s => { if (savedW[s.id] !== undefined) s.w = savedW[s.id] })
         document.documentElement.dataset.vtDir = isBack ? 'back' : 'forward'
 
         const doRender = () => {
@@ -469,12 +469,12 @@ const PASO = {
 
         window.addEventListener('mouseup', () => {
             if (!drag) return
-            // Persiste pesos no estado dos slots
+            // Persiste pesos em _slots e localStorage (não na URL)
             this.$$('[data-slot]', main).forEach(el => {
                 const slot = this._slots.find(s => s.id === el.dataset.slot)
                 if (slot) slot.w = Math.round(parseFloat(el.style.flexGrow) * 100) / 100
             })
-            history.replaceState({ id: this._navId }, '', `#${this._buildHash(this._slots)}`)
+            this.storage.slotWeights.save(this._slots)
             drag.handle.classList.remove('p-handle-dragging')
             document.documentElement.style.cursor    = ''
             document.documentElement.style.userSelect = ''
@@ -556,6 +556,9 @@ const PASO = {
         }
 
         this._focusedSlot = slots[0]?.id || 'a'
+        // Restaura pesos do localStorage antes do render inicial
+        const savedW = this.storage.slotWeights.get()
+        slots.forEach(s => { if (savedW[s.id] !== undefined) s.w = savedW[s.id] })
         history.replaceState({ id: 0 }, '', `#${this._buildHash(slots)}`)
         this._navId = 0
 
@@ -590,7 +593,7 @@ const PASO = {
 // ── Storage ───────────────────────────────────────────────────────────────────
 PASO.storage = (() => {
     const KEY      = 'pieces-lab'
-    const defaults = { dark: false, screenSize: 'default' }
+    const defaults = { dark: false, screenSize: 'default', slotWeights: {} }
 
     const read  = ()       => { try { return { ...defaults, ...JSON.parse(localStorage.getItem(KEY)) } } catch { return { ...defaults } } }
     const write = data     => localStorage.setItem(KEY, JSON.stringify(data))
@@ -603,6 +606,16 @@ PASO.storage = (() => {
         screenSize: {
             get()       { return read().screenSize },
             set(value)  { const d = read(); d.screenSize = value; write(d) }
+        },
+        slotWeights: {
+            get()        { return read().slotWeights || {} },
+            save(slots)  {
+                const d = read()
+                const w = {}
+                slots.forEach(s => { w[s.id] = Math.round((s.w || 1) * 100) / 100 })
+                d.slotWeights = w
+                write(d)
+            }
         }
     }
 })()
