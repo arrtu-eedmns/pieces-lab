@@ -72,18 +72,22 @@ if (!document.getElementById('ct-style')) {
     document.head.appendChild(s)
 }
 
+// Seleção por slot — sobrevive entre re-renders (openPanel re-chama main)
+const selectedBySlot = new Map()
+
 // ── View: lista de contatos ───────────────────────────────
 PASO.newView({
     name: 'Contatos',
     icon: 'group',
 
     main(container) {
-        // Seção preenche o slot sem padding extra
         container.style.cssText = 'padding:0;height:100%;overflow:hidden;min-height:0;gap:0;'
 
-        // isWide e renderDetailContent usam o slotEl passado como argumento
-        // (nunca o closure container, que pode estar detached em re-renders)
-        const renderDetailContent = (id, slotEl) => {
+        // slotEl/slotId capturados agora — container está no DOM neste momento
+        const slotEl = container.closest('[data-slot]')
+        const slotId = slotEl?.dataset.slot
+
+        const renderDetailContent = (id, targetSlotEl) => {
             const c     = CONTATOS[id]
             const panel = slotEl?.querySelector('.ct-detail-panel')
             if (!panel) return
@@ -131,16 +135,19 @@ PASO.newView({
         }
 
         const selectContact = (id, btn) => {
-            // Usa o botão clicado como âncora — sempre no DOM atual
-            const slotEl = btn.closest('[data-slot]')
-            const wide   = slotEl ? slotEl.offsetWidth >= 500 : false
+            const btnSlotEl = btn.closest('[data-slot]')
+            const btnSlotId = btnSlotEl?.dataset.slot
+            const wide      = btnSlotEl ? btnSlotEl.offsetWidth >= 500 : false
 
-            slotEl?.querySelectorAll('.ct-item').forEach((el, i) =>
+            // Persiste seleção — sobrevive a re-renders
+            selectedBySlot.set(btnSlotId, id)
+
+            btnSlotEl?.querySelectorAll('.ct-item').forEach((el, i) =>
                 el.classList.toggle('ct-item-selected', i === id)
             )
 
             if (wide) {
-                renderDetailContent(id, slotEl)
+                renderDetailContent(id, btnSlotEl)
             } else {
                 PASO.openPanel('detalhe-contato', { id: String(id) })
             }
@@ -191,6 +198,33 @@ PASO.newView({
         container.querySelectorAll('.ct-item').forEach((el, i) =>
             el.addEventListener('click', (e) => selectContact(i, e.currentTarget))
         )
+
+        // Restaura seleção anterior (re-render após openPanel, etc.)
+        const prevId = selectedBySlot.get(slotId)
+        if (prevId !== null && prevId !== undefined && slotEl) {
+            const wide = slotEl.offsetWidth >= 500
+            if (wide) {
+                renderDetailContent(prevId, slotEl)
+                slotEl.querySelectorAll('.ct-item').forEach((el, i) =>
+                    el.classList.toggle('ct-item-selected', i === prevId)
+                )
+            }
+        }
+
+        // ResizeObserver — quando slot encolhe com contato selecionado, abre painel
+        if (slotEl) {
+            const obs = new ResizeObserver(entries => {
+                const w = entries[0]?.contentRect.width ?? 0
+                if (w >= 500) return
+                const sel = selectedBySlot.get(slotId)
+                if (sel === undefined) return
+                const already = PASO._slots.find(s => s.id === slotId)?.panelName
+                if (already) return  // painel já aberto
+                obs.disconnect()
+                PASO.openPanel('detalhe-contato', { id: String(sel) })
+            })
+            obs.observe(slotEl)
+        }
     }
 })
 
