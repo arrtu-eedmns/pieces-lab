@@ -13,6 +13,7 @@ const PASO = {
     _navId:        0,
     _initialized:  false,
     _fromPopstate: false,
+    _isDragging:   false,
 
     // ── Utilitários DOM ──────────────────────────────────────────────────────
     $:  (sel, ctx = document) => ctx.querySelector(sel),
@@ -141,14 +142,16 @@ const PASO = {
             }
         })
 
-        // Reconstrói handles entre slots adjacentes
-        main.querySelectorAll('.p-slot-handle').forEach(h => h.remove())
-        const slotEls = [...main.querySelectorAll('[data-slot]')]
-        slotEls.slice(0, -1).forEach(el => {
-            const handle = document.createElement('div')
-            handle.className = 'p-slot-handle'
-            el.after(handle)
-        })
+        // Reconstrói handles entre slots adjacentes (não durante drag — evita destruir o handle ativo)
+        if (!this._isDragging) {
+            main.querySelectorAll('.p-slot-handle').forEach(h => h.remove())
+            const slotEls = [...main.querySelectorAll('[data-slot]')]
+            slotEls.slice(0, -1).forEach(el => {
+                const handle = document.createElement('div')
+                handle.className = 'p-slot-handle'
+                el.after(handle)
+            })
+        }
 
         // Aplica peso flex em cada slot
         this._slots.forEach(s => {
@@ -537,6 +540,7 @@ const PASO = {
                 startWA: parseFloat(slotAEl.style.flexGrow) || 1,
                 startWB: parseFloat(slotBEl.style.flexGrow) || 1,
             }
+            this._isDragging = true
             handle.classList.add('p-handle-dragging')
             document.documentElement.style.cursor    = 'col-resize'
             document.documentElement.style.userSelect = 'none'
@@ -559,6 +563,7 @@ const PASO = {
 
         window.addEventListener('mouseup', () => {
             if (!drag) return
+            this._isDragging = false
             // Se houve movimento real, suprime o click que o browser dispara após o mouseup
             // (evita que o cursor sobre um botão da nav dispare navigate() ao soltar)
             if (dragged) {

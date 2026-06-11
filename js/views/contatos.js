@@ -225,10 +225,11 @@ PASO.newView({
         slotObservers.get(slotId)?.disconnect()
 
         if (slotEl) {
-            let wasWide = slotEl.offsetWidth >= 500
+            let wasWide = null  // inicializado no primeiro fire (usa contentRect, evita mismatch com offsetWidth)
             const obs = new ResizeObserver(entries => {
                 const w      = entries[0]?.contentRect.width ?? 0
                 const isWide = w >= 500
+                if (wasWide === null) { wasWide = isWide; return }  // primeira observação: apenas inicializa
                 if (isWide === wasWide) return
                 wasWide = isWide
 
