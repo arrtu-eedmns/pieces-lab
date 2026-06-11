@@ -96,7 +96,9 @@ const PASO = {
         }
 
         if (this._initialized && document.startViewTransition && !skipTransition) {
-            document.startViewTransition(doRender)
+            const vt = document.startViewTransition(doRender)
+            vt.ready.catch(() => {})
+            vt.finished.catch(() => {})
         } else {
             doRender()
         }
@@ -320,7 +322,7 @@ const PASO = {
         const rid   = this.slug(panelName)
         const slots = this._slots.map(s =>
             s.id === slotId
-                ? { ...s, panelName: rid, panelParams: params }
+                ? { ...s, panelName: rid, panelParams: params, panelSilent: silent }
                 : s
         )
 
@@ -335,11 +337,26 @@ const PASO = {
     },
 
     closePanel(slotId = this._focusedSlot) {
+        const slotState = this._slots.find(s => s.id === slotId)
+        if (!slotState?.panelName) return  // guard: já fechado, evita double-click
+
         const slots = this._slots.map(s =>
-            s.id === slotId ? { ...s, panelName: null, panelParams: {} } : s
+            s.id === slotId ? { ...s, panelName: null, panelParams: {}, panelSilent: false } : s
         )
-        history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
-        this.renderAll(slots, true)
+        this._slots = slots  // atualiza sync antes de qualquer op assíncrona
+
+        if (slotState.panelSilent) {
+            // Painel foi aberto por resize (replaceState) → fecha com replaceState
+            history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
+            this.renderAll(slots, true)
+        } else if ((history.state?.id ?? 0) > 0) {
+            // Painel foi aberto pelo usuário (pushState) → consome a entrada com back()
+            history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
+            history.back()
+        } else {
+            history.replaceState({ id: this._navId }, '', `#${this._buildHash(slots)}`)
+            this.renderAll(slots, true)
+        }
     },
 
     // ── Context menu de nav ──────────────────────────────────────────────────

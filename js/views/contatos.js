@@ -74,6 +74,8 @@ if (!document.getElementById('ct-style')) {
 
 // Seleção por slot — sobrevive entre re-renders (openPanel re-chama main)
 const selectedBySlot = new Map()
+// Um único ResizeObserver por slot — evita acúmulo de observers obsoletos
+const slotObservers  = new Map()
 
 // ── View: lista de contatos ───────────────────────────────
 PASO.newView({
@@ -219,7 +221,9 @@ PASO.newView({
             }
         }
 
-        // ResizeObserver — transições estreito↔largo com contato selecionado
+        // Um observer por slot — desconecta o anterior antes de criar novo
+        slotObservers.get(slotId)?.disconnect()
+
         if (slotEl) {
             let wasWide = slotEl.offsetWidth >= 500
             const obs = new ResizeObserver(entries => {
@@ -234,12 +238,16 @@ PASO.newView({
                     if (sel === undefined) return
                     if (PASO._slots.find(s => s.id === slotId)?.panelName) return
                     obs.disconnect()
+                    slotObservers.delete(slotId)
                     PASO.openPanel('detalhe-contato', { id: String(sel) }, slotId, { silent: true })
                 } else {
-                    // Estreito → largo: fecha painel silenciosamente (replaceState, sem history.back)
+                    // Estreito → largo: fecha painel e/ou restaura detalhe inline
                     const slotState = PASO._slots.find(s => s.id === slotId)
-                    if (slotState?.panelName !== 'detalhe-contato') return
+                    const sel       = selectedBySlot.get(slotId)
+                    const hasPanel  = slotState?.panelName === 'detalhe-contato'
+                    if (!hasPanel && sel === undefined) return
                     obs.disconnect()
+                    slotObservers.delete(slotId)
                     const slots = PASO._slots.map(s =>
                         s.id === slotId ? { ...s, panelName: null, panelParams: {} } : s
                     )
@@ -248,6 +256,7 @@ PASO.newView({
                 }
             })
             obs.observe(slotEl)
+            slotObservers.set(slotId, obs)
         }
     }
 })
