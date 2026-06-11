@@ -521,8 +521,11 @@ const PASO = {
             e.preventDefault()
         })
 
+        let dragged = false
+
         window.addEventListener('mousemove', e => {
             if (!drag) return
+            dragged = true
             const totalW = drag.startWA + drag.startWB
             const mainW  = main.getBoundingClientRect().width
             const delta  = (e.clientX - drag.startX) / mainW * totalW
@@ -534,6 +537,12 @@ const PASO = {
 
         window.addEventListener('mouseup', () => {
             if (!drag) return
+            // Se houve movimento real, suprime o click que o browser dispara após o mouseup
+            // (evita que o cursor sobre um botão da nav dispare navigate() ao soltar)
+            if (dragged) {
+                document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true })
+            }
+            dragged = false
             // Persiste pesos em _slots e localStorage (não na URL)
             this.$$('[data-slot]', main).forEach(el => {
                 const slot = this._slots.find(s => s.id === el.dataset.slot)
