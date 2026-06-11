@@ -337,6 +337,71 @@ const PASO = {
         }
     },
 
+    // ── Context menu de nav ──────────────────────────────────────────────────
+    _initContextMenu() {
+        const menu   = this.$('#p-ctx-menu')
+        const btnOpen = this.$('#p-ctx-open-slot')
+        if (!menu) return
+
+        let targetViewId = null
+
+        const show = (x, y, viewId) => {
+            targetViewId = viewId
+            menu.style.left = `${x}px`
+            menu.style.top  = `${y}px`
+            menu.classList.add('p-ctx-open')
+            // Ajusta se sair da tela
+            requestAnimationFrame(() => {
+                const r = menu.getBoundingClientRect()
+                if (r.right  > window.innerWidth)  menu.style.left = `${window.innerWidth  - r.width  - 8}px`
+                if (r.bottom > window.innerHeight)  menu.style.top  = `${window.innerHeight - r.height - 8}px`
+            })
+        }
+
+        const hide = () => {
+            menu.classList.remove('p-ctx-open')
+            targetViewId = null
+        }
+
+        btnOpen.addEventListener('click', () => {
+            if (targetViewId) this.openSlot(targetViewId)
+            hide()
+        })
+
+        document.addEventListener('click',   e => { if (!menu.contains(e.target)) hide() })
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') hide() })
+
+        this._ctxMenu = { show, hide }
+    },
+
+    _attachNavActions() {
+        this.$$('[data-nav]').forEach(btn => {
+            const viewId = btn.dataset.nav
+
+            // Desktop: botão direito → context menu
+            btn.addEventListener('contextmenu', e => {
+                e.preventDefault()
+                this._ctxMenu?.show(e.clientX, e.clientY, viewId)
+            })
+
+            // Mobile: long press (~450ms) → context menu
+            let timer = null
+            const cancelLong = () => { clearTimeout(timer); timer = null }
+
+            btn.addEventListener('touchstart', e => {
+                timer = setTimeout(() => {
+                    navigator.vibrate?.(50)
+                    this._ctxMenu?.show(e.touches[0].clientX, e.touches[0].clientY, viewId)
+                    timer = null
+                }, 450)
+            }, { passive: true })
+
+            btn.addEventListener('touchend',    cancelLong, { passive: true })
+            btn.addEventListener('touchmove',   cancelLong, { passive: true })
+            btn.addEventListener('touchcancel', cancelLong, { passive: true })
+        })
+    },
+
     // ── Nav ───────────────────────────────────────────────────────────────────
     _buildNav() {
         const navAside  = this.$('#p-nav')
@@ -527,6 +592,8 @@ const PASO = {
         document.body.classList.toggle('piece-light', !dark)
 
         this._buildNav()
+        this._initContextMenu()
+        this._attachNavActions()
         this._buildSizeBar()
         this._initSlotResize()
         this._initSwipeIndicator()

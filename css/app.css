@@ -411,6 +411,23 @@ html:has(body.piece-light) {
     transform: translateX(0) translateY(-50%);
 }
 
+/* ── Context menu ────────────────────────────────────────── */
+#p-ctx-menu {
+    position: fixed;
+    z-index: 9000;
+    border-radius: 12px;
+    overflow: hidden;
+    border-width: 1px;
+    border-style: solid;
+    display: none;
+    flex-direction: column;
+    min-width: 190px;
+}
+
+#p-ctx-menu.p-ctx-open {
+    display: flex;
+}
+
 /* ── Typography helpers ──────────────────────────────────── */
 .p-title {
     font-size: 22px;
