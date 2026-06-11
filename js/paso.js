@@ -1,58 +1,91 @@
 // PASO — Pieces App Shell Operation
-// Gerencia o shell da aplicação: roteamento hash, views, painéis, storage e simulador de tela.
+// Gerencia o shell da aplicação: slots independentes, roteamento, views, painéis, storage.
 
 const PASO = {
 
     name: 'Pieces Lab',
     views: [],
     panels: [],
-    currentView: null,
-    currentPanel: null,
-    _navId: 0,
-    _initialized: false,
+
+    // ── Estado ───────────────────────────────────────────────────────────────
+    _slots:        [],   // [{ id, viewId, panelName, panelParams }]
+    _focusedSlot:  'a',
+    _navId:        0,
+    _initialized:  false,
     _fromPopstate: false,
 
     // ── Utilitários DOM ──────────────────────────────────────────────────────
     $:  (sel, ctx = document) => ctx.querySelector(sel),
     $$: (sel, ctx = document) => [...ctx.querySelectorAll(sel)],
 
-    slug: str => str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-'),
+    // Slug robusto: remove diacríticos (qualquer língua), kebab-case
+    slug(str) {
+        return str
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Mn}/gu, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+    },
+
+    // Resolve o id de uma view ou panel (campo id explícito ou slug do name)
+    _id(v) { return v.id || this.slug(v.name) },
 
     // ── Registro ─────────────────────────────────────────────────────────────
-    newView(config) {
-        this.views.push(config)
-    },
+    newView(config)  { this.views.push(config) },
+    newPanel(config) { this.panels.push(config) },
 
-    newPanel(config) {
-        this.panels.push(config)
-    },
-
-    // ── Parse do hash ─────────────────────────────────────────────────────────
-    // Formato: #viewSlug[/param1][/param2][?panel=name&key=val]
+    // ── URL ──────────────────────────────────────────────────────────────────
+    // Formato: #a=view-id&a.panel=panel-id&a.key=val&b=other-view-id
     _parseHash(raw) {
         const clean = decodeURIComponent(raw.replace(/^#/, ''))
-        const [pathPart = '', queryPart = ''] = clean.split('?')
-        const segments = pathPart.replace(/^\/?(.*?)\/?$/, '$1').split('/').filter(Boolean)
-        const query    = new URLSearchParams(queryPart)
-        return {
-            viewSlug:   segments[0] || '',
-            viewParams: segments.slice(1),
-            panelName:  query.get('panel'),
-            panelParams: Object.fromEntries(query.entries()),
+        if (!clean || !clean.includes('=')) return []
+
+        const params = new URLSearchParams(clean)
+        const slots  = []
+
+        for (const [key, val] of params.entries()) {
+            if (key.includes('.') || !val) continue
+
+            const panelName   = params.get(`${key}.panel`) || null
+            const panelParams = {}
+
+            for (const [pk, pv] of params.entries()) {
+                if (pk.startsWith(`${key}.`) && pk !== `${key}.panel`) {
+                    panelParams[pk.slice(key.length + 1)] = pv
+                }
+            }
+
+            slots.push({ id: key, viewId: val, panelName, panelParams })
         }
+
+        return slots
     },
 
-    // ── Renderiza view + painel ───────────────────────────────────────────────
-    renderView(hash, isBack = false) {
+    _buildHash(slots) {
+        const params = new URLSearchParams()
+        slots.forEach(s => {
+            params.set(s.id, s.viewId)
+            if (s.panelName) {
+                params.set(`${s.id}.panel`, s.panelName)
+                Object.entries(s.panelParams || {}).forEach(([k, v]) => {
+                    params.set(`${s.id}.${k}`, v)
+                })
+            }
+        })
+        return params.toString()
+    },
+
+    // ── Renderização ─────────────────────────────────────────────────────────
+    renderAll(slots, isBack = false) {
+        if (!slots.length) return
         document.documentElement.dataset.vtDir = isBack ? 'back' : 'forward'
 
-        const parsed = this._parseHash(hash)
-
         const doRender = () => {
-            this._doRenderView(parsed)
-            parsed.panelName
-                ? this._doRenderPanel(parsed.panelName, parsed.panelParams)
-                : this._doClosePanel()
+            this._slots = slots
+            this._syncSlotElements()
+            slots.forEach(s => this._renderSlot(s))
+            this._updateNav()
         }
 
         if (this._initialized && document.startViewTransition) {
@@ -62,93 +95,227 @@ const PASO = {
         }
     },
 
-    _doRenderView({ viewSlug, viewParams }) {
-        const view    = this.views.find(v => this.slug(v.name) === viewSlug)
-        const primary = this.$('#p-main-primary')
+    _syncSlotElements() {
+        const main    = this.$('#p-main')
+        const current = [...main.querySelectorAll('[data-slot]')].map(el => el.dataset.slot)
+        const desired = this._slots.map(s => s.id)
+
+        // Remove slots que saíram
+        current.filter(id => !desired.includes(id)).forEach(id =>
+            main.querySelector(`[data-slot="${id}"]`)?.remove()
+        )
+
+        // Cria slots novos na posição correta
+        desired.forEach((id, i) => {
+            if (!main.querySelector(`[data-slot="${id}"]`)) {
+                const el = document.createElement('div')
+                el.className = 'p-slot piece-surface piece-border border-color-auto-05'
+                el.dataset.slot = id
+                el.innerHTML = `
+                    <div class="p-slot-header piece-surface background-color-auto-03 piece-border border-color-auto-05">
+                        <span class="p-slot-title piece-surface text-color-auto-14"></span>
+                        <button
+                            class="piece-surface piece-icon-button piece-small
+                                background-color-auto-00 background-color-auto-04-hover
+                                text-color-auto-16"
+                            onclick="PASO.closeSlot('${id}')">
+                            <span class="piece-ripple"></span>
+                            <span class="material-symbols-rounded piece-icon">close</span>
+                        </button>
+                    </div>
+                    <div class="p-slot-primary piece-surface"></div>
+                    <div class="p-slot-secondary piece-surface background-color-auto-02"></div>
+                `
+                const all = [...main.querySelectorAll('[data-slot]')]
+                if (i >= all.length) main.appendChild(el)
+                else main.insertBefore(el, all[i])
+            }
+        })
+
+        // Atualiza CSS var para grid
+        main.style.setProperty('--p-slots', desired.length)
+        this._updateFocusedClass()
+    },
+
+    _updateFocusedClass() {
+        this.$$('[data-slot]').forEach(el =>
+            el.classList.toggle('p-slot-focused', el.dataset.slot === this._focusedSlot)
+        )
+
+        // Atualiza título no header mobile (mostra a view do slot focado)
+        const focused = this._slots.find(s => s.id === this._focusedSlot)
+        if (focused) {
+            const view    = this.views.find(v => this._id(v) === focused.viewId)
+            const titleEl = this.$('#p-page-title')
+            if (titleEl && view) titleEl.textContent = view.name
+        }
+    },
+
+    _renderSlot(slotState) {
+        const slotEl = this.$(`[data-slot="${slotState.id}"]`)
+        if (!slotEl) return
+
+        this._renderSlotView(slotEl, slotState)
+        slotState.panelName
+            ? this._renderSlotPanel(slotEl, slotState)
+            : this._closeSlotPanel(slotEl)
+    },
+
+    _renderSlotView(slotEl, { id, viewId }) {
+        const view    = this.views.find(v => this._id(v) === viewId)
+        const primary = slotEl.querySelector('.p-slot-primary')
+        const titleEl = slotEl.querySelector('.p-slot-title')
 
         if (!view) {
+            if (titleEl) titleEl.textContent = '—'
             primary.innerHTML = '<p style="padding:24px">Página não encontrada</p>'
             return
         }
 
-        this.currentView = view
-        document.title = `${this.name} — ${view.name}`
-
-        const titleEl = this.$('#p-page-title')
         if (titleEl) titleEl.textContent = view.name
+        if (id === this._focusedSlot) document.title = `${this.name} — ${view.name}`
 
-        const id = `view-${this.slug(view.name)}`
-        primary.innerHTML = `<section id="${id}"></section>`
-        view.main(this.$(`#${id}`), viewParams)
+        // Guard de permissão
+        if (view.guard && !view.guard()) {
+            primary.innerHTML = `
+                <div style="padding:32px 24px;display:flex;flex-direction:column;gap:12px">
+                    <span class="material-symbols-rounded piece-surface text-color-auto-12" style="font-size:32px">lock</span>
+                    <div>
+                        <p class="piece-surface text-color-auto-20" style="font-size:16px;font-weight:600">Sem permissão</p>
+                        <p class="piece-surface text-color-auto-14" style="font-size:13px;margin-top:4px">Você não tem acesso a esta view.</p>
+                    </div>
+                </div>`
+            return
+        }
 
-        this.$$('[data-nav]').forEach(btn =>
-            btn.classList.toggle('piece-actived', btn.dataset.nav === viewSlug)
-        )
+        const sectionId = `view-${id}-${viewId}`
+        primary.innerHTML = `<section id="${sectionId}"></section>`
+        view.main(this.$(`#${sectionId}`), [])
     },
 
-    // ── Painel secundário ─────────────────────────────────────────────────────
-    _doRenderPanel(panelName, params) {
-        const panel     = this.panels.find(p => this.slug(p.name) === panelName)
-        const secondary = this.$('#p-main-secondary')
+    _renderSlotPanel(slotEl, { id, panelName, panelParams }) {
+        const panel     = this.panels.find(p => this._id(p) === panelName)
+        const secondary = slotEl.querySelector('.p-slot-secondary')
+        if (!panel || !secondary) return
 
-        if (!panel) return
-
-        this.currentPanel = panel
-
-        const id = `panel-${this.slug(panel.name)}`
+        const sectionId = `panel-${id}-${panelName}`
         secondary.innerHTML = `
-            <div id="p-panel-header" class="piece-surface background-color-auto-02 piece-border border-color-auto-05">
+            <div class="p-panel-header piece-surface background-color-auto-02 piece-border border-color-auto-05">
                 <button
                     class="piece-surface piece-icon-button piece-medium
                         background-color-auto-00 background-color-auto-04-hover
                         text-color-auto-20"
-                    onclick="PASO.closePanel()">
+                    onclick="PASO.closePanel('${id}')">
                     <span class="piece-ripple"></span>
                     <span class="material-symbols-rounded piece-icon">arrow_back</span>
                 </button>
-                <span id="p-panel-title" class="piece-surface text-color-auto-20">${panel.title || panel.name}</span>
+                <span class="piece-surface text-color-auto-20" style="font-size:16px;font-weight:600">${panel.title || panel.name}</span>
             </div>
-            <section id="${id}"></section>
+            <section id="${sectionId}"></section>
         `
 
-        panel.main(this.$(`#${id}`), params)
+        panel.main(this.$(`#${sectionId}`), panelParams)
         secondary.classList.add('piece-actived')
     },
 
-    _doClosePanel() {
-        const secondary = this.$('#p-main-secondary')
+    _closeSlotPanel(slotEl) {
+        const secondary = slotEl?.querySelector('.p-slot-secondary')
         if (!secondary) return
         secondary.classList.remove('piece-actived')
         secondary.innerHTML = ''
-        this.currentPanel = null
+    },
+
+    _updateNav() {
+        const focused = this._slots.find(s => s.id === this._focusedSlot)
+        this.$$('[data-nav]').forEach(btn =>
+            btn.classList.toggle('piece-actived', btn.dataset.nav === focused?.viewId)
+        )
+        this._updateFocusedClass()
     },
 
     // ── Navegação ─────────────────────────────────────────────────────────────
-    navigate(viewName, ...params) {
-        const hash = [this.slug(viewName), ...params].join('/')
+    navigate(viewId, slotId = this._focusedSlot) {
+        const view = this.views.find(v => this._id(v) === viewId)
+        if (!view) return
+
+        const rid   = this._id(view)
+        const slots = this._slots.map(s =>
+            s.id === slotId
+                ? { id: s.id, viewId: rid, panelName: null, panelParams: {} }
+                : s
+        )
+
+        const hash = this._buildHash(slots)
         if (location.hash === `#${hash}`) return
         this._navId++
         history.pushState({ id: this._navId }, '', `#${hash}`)
-        this.renderView(hash, false)
+        this.renderAll(slots, false)
     },
 
-    openPanel(panelName, params = {}) {
-        const basePath = location.hash.replace(/^#/, '').split('?')[0]
-        const query    = new URLSearchParams({ panel: this.slug(panelName), ...params })
-        const hash     = `${basePath}?${query}`
+    // Abre a view num slot novo (ou foca se já estiver aberta)
+    openSlot(viewId) {
+        const view = this.views.find(v => this._id(v) === viewId)
+        if (!view) return
+
+        const rid      = this._id(view)
+        const existing = this._slots.find(s => s.viewId === rid)
+
+        if (existing) {
+            this._focusedSlot = existing.id
+            this._updateFocusedClass()
+            this._updateNav()
+            return
+        }
+
+        const usedIds = this._slots.map(s => s.id)
+        const newId   = 'abcdefgh'.split('').find(c => !usedIds.includes(c)) || 'z'
+        const slots   = [...this._slots, { id: newId, viewId: rid, panelName: null, panelParams: {} }]
+        this._focusedSlot = newId
+
+        const hash = this._buildHash(slots)
         this._navId++
         history.pushState({ id: this._navId }, '', `#${hash}`)
-        this.renderView(hash, false)
+        this.renderAll(slots, false)
     },
 
-    closePanel() {
+    closeSlot(slotId) {
+        if (this._slots.length <= 1) return
+        const slots = this._slots.filter(s => s.id !== slotId)
+        if (this._focusedSlot === slotId) this._focusedSlot = slots[0].id
+
+        const hash = this._buildHash(slots)
+        this._navId++
+        history.pushState({ id: this._navId }, '', `#${hash}`)
+        this.renderAll(slots, false)
+    },
+
+    openPanel(panelName, params = {}, slotId = this._focusedSlot) {
+        const rid   = this.slug(panelName)
+        const slots = this._slots.map(s =>
+            s.id === slotId
+                ? { ...s, panelName: rid, panelParams: params }
+                : s
+        )
+
+        const hash = this._buildHash(slots)
+        this._navId++
+        history.pushState({ id: this._navId }, '', `#${hash}`)
+        this.renderAll(slots, false)
+    },
+
+    closePanel(slotId = this._focusedSlot) {
         if ((history.state?.id ?? 0) > 0) {
-            history.back()  // popstate vai disparar com isBack = true
+            history.back()  // popstate dispara com isBack = true
         } else {
-            const hash = location.hash.replace(/^#/, '').split('?')[0]
+            const slots = this._slots.map(s =>
+                s.id === slotId
+                    ? { ...s, panelName: null, panelParams: {} }
+                    : s
+            )
+            const hash = this._buildHash(slots)
             this._navId++
             history.pushState({ id: this._navId }, '', `#${hash}`)
-            this.renderView(hash, true)
+            this.renderAll(slots, true)
         }
     },
 
@@ -157,46 +324,39 @@ const PASO = {
         const navAside  = this.$('#p-nav')
         const navHeader = this.$('#p-header-nav')
 
-        const asideBtns = this.views.map(v => {
-            const s = this.slug(v.name)
+        const aside = this.views.map(v => {
+            const id = this._id(v)
             return `
             <button
                 class="p-nav-btn piece-button piece-toggle piece-surface piece-medium
-                    background-color-auto-00
-                    background-color-auto-04-hover
-                    background-color-auto-05-active
-                    background-color-auto-06-hover-active
-                    text-color-auto-16
-                    text-color-auto-22-active
-                    piece-primary-active"
-                data-nav="${s}"
-                onclick="PASO.navigate('${v.name}')">
+                    background-color-auto-00 background-color-auto-04-hover
+                    background-color-auto-05-active background-color-auto-06-hover-active
+                    text-color-auto-16 text-color-auto-22-active piece-primary-active"
+                data-nav="${id}"
+                onclick="PASO.navigate('${id}')">
                 <span class="piece-ripple"></span>
                 <span class="material-symbols-rounded piece-icon">${v.icon}</span>
                 <span class="piece-label p-nav-label">${v.name}</span>
             </button>`
         }).join('')
 
-        const headerBtns = this.views.map(v => {
-            const s = this.slug(v.name)
+        const header = this.views.map(v => {
+            const id = this._id(v)
             return `
             <button
                 class="piece-icon-button piece-toggle piece-surface piece-medium
-                    background-color-auto-00
-                    background-color-auto-04-hover
-                    background-color-auto-05-active
-                    text-color-auto-16
-                    text-color-auto-22-active
-                    piece-primary-active"
-                data-nav="${s}"
-                onclick="PASO.navigate('${v.name}')">
+                    background-color-auto-00 background-color-auto-04-hover
+                    background-color-auto-05-active text-color-auto-16
+                    text-color-auto-22-active piece-primary-active"
+                data-nav="${id}"
+                onclick="PASO.navigate('${id}')">
                 <span class="piece-ripple"></span>
                 <span class="material-symbols-rounded piece-icon">${v.icon}</span>
             </button>`
         }).join('')
 
-        if (navAside)  navAside.innerHTML  = asideBtns
-        if (navHeader) navHeader.innerHTML = headerBtns
+        if (navAside)  navAside.innerHTML  = aside
+        if (navHeader) navHeader.innerHTML = header
     },
 
     // ── Screen-size simulator ─────────────────────────────────────────────────
@@ -217,12 +377,9 @@ const PASO = {
         container.innerHTML = sizes.map(s => `
             <button
                 class="piece-button piece-toggle piece-surface piece-extra-small
-                    background-color-auto-04
-                    background-color-auto-06-hover
-                    background-color-auto-11-active
-                    background-color-auto-12-hover-active
-                    text-color-auto-18
-                    text-color-auto-02-active
+                    background-color-auto-04 background-color-auto-06-hover
+                    background-color-auto-11-active background-color-auto-12-hover-active
+                    text-color-auto-18 text-color-auto-02-active
                     ${s.label === current ? 'piece-actived' : ''}"
                 data-size="${s.label}"
                 onclick="PASO._setSize('${s.label}')">
@@ -304,34 +461,52 @@ const PASO = {
         this._buildSizeBar()
         this._initSwipeIndicator()
 
-        let initial = location.hash.replace(/^#/, '')
-        if (!initial && this.views.length) {
-            initial = this.slug(this.views[0].name)
+        // Foco no slot ao clicar (event delegation)
+        this.$('#p-main').addEventListener('click', e => {
+            const slotEl = e.target.closest('[data-slot]')
+            if (slotEl && this._focusedSlot !== slotEl.dataset.slot) {
+                this._focusedSlot = slotEl.dataset.slot
+                this._updateFocusedClass()
+                this._updateNav()
+            }
+        }, { capture: true })
+
+        // Parse da URL inicial
+        let slots = this._parseHash(location.hash)
+
+        if (!slots.length && this.views.length) {
+            const first = this.views[0]
+            slots = [{ id: 'a', viewId: this._id(first), panelName: null, panelParams: {} }]
         }
 
-        // Marca estado inicial no history
-        history.replaceState({ id: 0 }, '', initial ? `#${initial}` : location.href)
+        this._focusedSlot = slots[0]?.id || 'a'
+        history.replaceState({ id: 0 }, '', `#${this._buildHash(slots)}`)
         this._navId = 0
 
-        // Renderiza sem animação na carga inicial
-        this.renderView(initial)
+        // Render inicial sem animação
+        this._slots = slots
+        this._syncSlotElements()
+        slots.forEach(s => this._renderSlot(s))
+        this._updateNav()
         this._initialized = true
 
-        // Back/forward do browser
+        // Back / forward do browser
         window.addEventListener('popstate', e => {
             this._fromPopstate = true
             const newId  = e.state?.id ?? 0
             const isBack = newId < this._navId
             this._navId  = newId
-            this.renderView(location.hash.replace(/^#/, ''), isBack)
+            const parsed = this._parseHash(location.hash)
+            if (parsed.length) this._focusedSlot = parsed[0].id
+            this.renderAll(parsed, isBack)
         })
 
-        // Hash externo (URL digitada diretamente, links etc.)
+        // Hash externo (URL digitada, links antigos)
         window.addEventListener('hashchange', () => {
             if (this._fromPopstate) { this._fromPopstate = false; return }
             this._navId++
             history.replaceState({ id: this._navId }, '')
-            this.renderView(location.hash.replace(/^#/, ''), false)
+            this.renderAll(this._parseHash(location.hash), false)
         })
     }
 }

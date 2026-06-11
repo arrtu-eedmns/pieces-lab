@@ -151,51 +151,80 @@ body {
 }
 
 /* ── Main ────────────────────────────────────────────────── */
-/* Nota: #p-main não define container — um container não pode
-   consultar a si mesmo via @container. Usamos @container corpo. */
 #p-main {
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(var(--p-slots, 1), 1fr);
 }
 
-/* ── Primary panel ───────────────────────────────────────── */
-#p-main-primary {
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-width: 0;
+/* Mobile: só o slot focado aparece */
+@container corpo (max-width: 860px) {
+    #p-main { grid-template-columns: 1fr; }
+    .p-slot:not(.p-slot-focused) { display: none; }
 }
 
-/* ── Secondary panel ─────────────────────────────────────── */
-#p-main-secondary {
-    display: none;
-    flex-direction: column;
+/* ── Slot ────────────────────────────────────────────────── */
+.p-slot {
+    display: grid;
+    grid-template-rows: auto 1fr;
     overflow: hidden;
+    position: relative;
+    container-name: slot;
+    container-type: inline-size;
     min-width: 0;
+    border-left-width: 0;
+    border-left-style: solid;
 }
 
-#p-main-secondary.piece-actived {
+/* Borda entre slots adjacentes */
+.p-slot + .p-slot {
+    border-left-width: 1px;
+}
+
+/* ── Slot header ─────────────────────────────────────────── */
+.p-slot-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 4px 16px;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+
+.p-slot-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    flex: 1;
+}
+
+/* Header visível quando há 2+ slots */
+#p-main:has(.p-slot:nth-child(2)) .p-slot-header {
     display: flex;
 }
 
-/* Narrow (< 861px corpo): secondary cobre o body como overlay */
-@container corpo (max-width: 860px) {
-    #p-main-secondary.piece-actived {
-        position: absolute;
-        inset: 0;
-        z-index: 100;
-    }
+/* ── Slot primary ────────────────────────────────────────── */
+.p-slot-primary {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
+    min-height: 0;
 }
 
-/* Wide (≥ 861px corpo): secondary vira coluna ao lado do primário */
-@container corpo (min-width: 861px) {
-    #p-main {
-        grid-template-columns: 320px 1fr;
-    }
-    #p-main-primary {
-        border-right-width: 1px;
-        border-right-style: solid;
-    }
+/* ── Slot secondary (panel) ──────────────────────────────── */
+.p-slot-secondary {
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.p-slot-secondary.piece-actived {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    z-index: 100;
 }
 
 /* ── Size simulator ──────────────────────────────────────── */
@@ -239,7 +268,7 @@ body {
 }
 
 /* ── View container ──────────────────────────────────────── */
-#p-main-primary > section {
+.p-slot-primary > section {
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -249,8 +278,8 @@ body {
     container-type: inline-size;
 }
 
-/* ── Panel container ─────────────────────────────────────── */
-#p-panel-header {
+/* ── Panel header e container ────────────────────────────── */
+.p-panel-header {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -260,12 +289,7 @@ body {
     border-bottom-style: solid;
 }
 
-#p-panel-title {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-#p-main-secondary > section {
+.p-slot-secondary > section {
     padding: 24px;
     display: flex;
     flex-direction: column;
