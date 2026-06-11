@@ -307,7 +307,7 @@ const PASO = {
         this.renderAll(slots, false)
     },
 
-    openPanel(panelName, params = {}, slotId = this._focusedSlot) {
+    openPanel(panelName, params = {}, slotId = this._focusedSlot, { silent = false } = {}) {
         const rid   = this.slug(panelName)
         const slots = this._slots.map(s =>
             s.id === slotId
@@ -316,8 +316,12 @@ const PASO = {
         )
 
         const hash = this._buildHash(slots)
-        this._navId++
-        history.pushState({ id: this._navId }, '', `#${hash}`)
+        if (silent) {
+            history.replaceState({ id: this._navId }, '', `#${hash}`)
+        } else {
+            this._navId++
+            history.pushState({ id: this._navId }, '', `#${hash}`)
+        }
         this.renderAll(slots, false)
     },
 

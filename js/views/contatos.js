@@ -226,7 +226,7 @@ PASO.newView({
                     if (sel === undefined) return
                     if (PASO._slots.find(s => s.id === slotId)?.panelName) return
                     obs.disconnect()
-                    PASO.openPanel('detalhe-contato', { id: String(sel) })
+                    PASO.openPanel('detalhe-contato', { id: String(sel) }, slotId, { silent: true })
                 } else {
                     // Estreito → largo: fecha painel silenciosamente (replaceState, sem history.back)
                     const slotState = PASO._slots.find(s => s.id === slotId)
